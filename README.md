@@ -53,7 +53,7 @@ code --install-extension baicai99.ilovelie
 1. 从 [GitHub Releases](https://github.com/baicai99/ilovelie/releases) 下载最新的 `.vsix` 文件
 2. 打开 VS Code
 3. 按 `Ctrl+Shift+P` 打开命令面板
-4. 输入 "Extensions: Install from VSIX..."
+4. 输入 "code --install-extension （ilovelie-版本号.vsix）"
 5. 选择下载的 `.vsix` 文件进行安装
 6. 重启 VS Code
 
