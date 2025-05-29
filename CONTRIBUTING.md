@@ -87,20 +87,87 @@ docs: 更新README使用说明
 
 - ✅ 手动替换注释
 - ✅ 选中文本替换
+- ✅ 字典智能替换
+- ✅ AI智能替换
+- ✅ 隐藏注释功能
+- ✅ 完整的历史记录系统
+- ✅ 临时状态管理
 
-### 待开发功能
+### 核心模块
 
-- ⏳ 字典替换
-- ⏳ AI驱动替换
-- ⏳ 隐藏注释
+**核心文件结构：**
+```
+src/
+├── extension.ts              # 主扩展入口
+├── aiReplacer.ts            # AI替换核心模块
+├── commentDetector.ts       # 注释检测器
+├── commentHider.ts          # 注释隐藏管理器
+├── commentReplacer.ts       # 手动替换器
+├── dictionaryReplacer.ts    # 字典替换器
+├── historyManager.ts        # 历史记录管理器
+├── restoreManager.ts        # 恢复管理器
+├── tempStateManager.ts      # 临时状态管理器
+├── liesDictionary.ts        # 撒谎词典
+├── types.ts                 # 类型定义
+└── commands/
+    └── index.ts             # 命令注册器
+```
 
 ### 添加新功能
 
-1. 在 `package.json` 的 `contributes.commands` 中添加命令
-2. 在 `src/extension.ts` 中实现功能
-3. 在 `activate` 函数中注册命令
-4. 编写测试
-5. 更新文档
+1. **在 `package.json` 中添加命令定义**：
+   ```json
+   {
+     "command": "ilovelie.yourNewCommand",
+     "title": "你的新功能",
+     "category": "我爱撒谎"
+   }
+   ```
+
+2. **创建功能模块**：
+   - 在 `src/` 目录下创建新的 `.ts` 文件
+   - 实现功能逻辑
+   - 导出主要的类或函数
+
+3. **在命令注册器中注册**：
+   - 在 `src/commands/index.ts` 中添加命令处理
+   - 在 `CommandRegistrar` 类的 `registerCommands` 方法中注册
+
+4. **更新主入口**：
+   - 在 `src/extension.ts` 中导入新模块
+   - 在 `activate` 函数中初始化
+
+5. **编写测试**：
+   - 在对应的测试文件中添加单元测试
+
+6. **更新文档**：
+   - 更新 README.md
+   - 更新 CHANGELOG.md
+   - 如有必要，更新 QUICKSTART.md
+
+### AI功能开发注意事项
+
+如果要开发AI相关功能，请注意：
+
+1. **API密钥安全**：
+   - 永远不要在代码中硬编码API密钥
+   - 使用VS Code的配置系统存储敏感信息
+   - 确保API密钥只保存在本地
+
+2. **错误处理**：
+   - 实现完善的错误处理机制
+   - 提供用户友好的错误提示
+   - 处理网络连接问题和API限制
+
+3. **费用控制**：
+   - 在进行批量操作前提醒用户可能的费用
+   - 提供取消机制
+   - 实现智能回退策略
+
+4. **配置管理**：
+   - 提供直观的配置界面
+   - 支持连接测试
+   - 允许用户自定义模型和参数
 
 ## 🧪 测试
 
