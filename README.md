@@ -35,6 +35,33 @@
 - ⏳ **AI替换**：由AI驱动的撒谎
 - ⏳ **隐藏注释**：隐藏注释功能
 
+## 📦 安装方法
+
+### 方法一：VS Code 扩展市场（推荐）
+1. 打开 VS Code
+2. 按 `Ctrl+Shift+X` 打开扩展面板
+3. 搜索 "我爱撒谎" 或 "ilovelie"
+4. 点击安装按钮
+5. 重启 VS Code 即可使用
+
+### 方法二：命令行安装
+```bash
+code --install-extension baicai99.ilovelie
+```
+
+### 方法三：手动安装 VSIX 文件
+1. 从 [GitHub Releases](https://github.com/baicai99/ilovelie/releases) 下载最新的 `.vsix` 文件
+2. 打开 VS Code
+3. 按 `Ctrl+Shift+P` 打开命令面板
+4. 输入 "Extensions: Install from VSIX..."
+5. 选择下载的 `.vsix` 文件进行安装
+6. 重启 VS Code
+
+**安装成功后，你可以通过以下方式验证：**
+- 按 `Ctrl+Shift+P` 打开命令面板
+- 输入 "手动替换注释" 或 "字典替换注释"
+- 如果能看到相关命令，说明安装成功！
+
 ## 🚀 使用方法
 
 ### 方法一：命令面板

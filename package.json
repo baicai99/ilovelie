@@ -2,7 +2,7 @@
   "name": "ilovelie",
   "displayName": "我爱撒谎",
   "description": "一个可以对代码注释撒谎的VS Code插件，让代码只有你可以维护！",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "baicai99",
   "license": "MIT",
   "repository": {
@@ -25,7 +25,9 @@
     "obfuscation",
     "code-protection"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "*"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
