@@ -71,5 +71,6 @@ export interface ReplaceResult {
 export interface RestoreResult {
     success: boolean;
     restoredCount: number;
+    restoredRecords?: HistoryRecord[]; // 实际成功还原的记录列表
     errorMessage?: string;
 }

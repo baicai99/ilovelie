@@ -211,13 +211,12 @@ export class RestoreManager {
             console.error('还原失败:', error);
             return false;
         }
-    }
-
-    /**
+    }    /**
      * 批量还原多个记录
      */
     public async restoreMultipleRecords(records: HistoryRecord[]): Promise<RestoreResult> {
         let restoredCount = 0;
+        let restoredRecords: HistoryRecord[] = [];
         let errorMessage = '';
 
         try {
@@ -228,12 +227,14 @@ export class RestoreManager {
                 const success = await this.restoreSpecificChange(record);
                 if (success) {
                     restoredCount++;
+                    restoredRecords.push(record);
                 }
             }
 
             return {
                 success: restoredCount > 0,
                 restoredCount,
+                restoredRecords,
                 errorMessage: restoredCount === 0 ? '没有成功还原任何记录' : undefined
             };
         } catch (error) {
@@ -241,6 +242,7 @@ export class RestoreManager {
             return {
                 success: false,
                 restoredCount,
+                restoredRecords,
                 errorMessage
             };
         }

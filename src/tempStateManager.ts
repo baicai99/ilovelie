@@ -41,16 +41,14 @@ export class TempStateManager {
         if (fileHistory.length === 0) {
             vscode.window.showInformationMessage('当前文件没有撒谎历史记录');
             return;
-        }
-
-        // 执行批量还原
+        }        // 执行批量还原
         const result = await this.restoreManager.restoreMultipleRecords(fileHistory);
 
         if (result.success && result.restoredCount > 0) {
-            // 保存临时还原状态
+            // 保存临时还原状态 - 使用实际成功还原的记录
             this.tempRestoreStates.set(filePath, {
                 filePath,
-                restoredRecords: fileHistory.slice(0, result.restoredCount),
+                restoredRecords: result.restoredRecords || [],
                 isTemporarilyRestored: true
             });
 
@@ -216,6 +214,53 @@ export class TempStateManager {
             setTimeout(() => {
                 this.restoreLieState(filePath);
             }, 1000);
+        }
+    }
+
+    /**
+     * 智能恢复单个撒谎记录
+     */
+    private async restoreSingleLieRecord(editor: vscode.TextEditor, record: HistoryRecord): Promise<boolean> {
+        const document = editor.document;
+
+        try {
+            // 尝试通过精确位置恢复
+            const range = new vscode.Range(
+                record.startPosition.line,
+                record.startPosition.character,
+                record.endPosition.line,
+                record.endPosition.character
+            );
+
+            // 检查当前位置的文本是否匹配原始文本
+            const currentText = document.getText(range);
+            if (currentText === record.originalText) {
+                // 精确匹配，直接恢复为撒谎文本
+                await editor.edit(editBuilder => {
+                    editBuilder.replace(range, record.newText);
+                });
+                return true;
+            }
+
+            // 如果精确位置不匹配，尝试在附近行查找原始文本
+            const searchStartLine = Math.max(0, record.startPosition.line - 2);
+            const searchEndLine = Math.min(document.lineCount - 1, record.endPosition.line + 2);
+
+            for (let i = searchStartLine; i <= searchEndLine; i++) {
+                const line = document.lineAt(i);
+                if (line.text.includes(record.originalText.trim())) {
+                    const newRange = new vscode.Range(i, 0, i, line.text.length);
+                    await editor.edit(editBuilder => {
+                        editBuilder.replace(newRange, record.newText);
+                    });
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (error) {
+            console.error('恢复撒谎记录失败:', error);
+            return false;
         }
     }
 }
