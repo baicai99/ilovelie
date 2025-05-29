@@ -65,23 +65,23 @@
         {
           "command": "ilovelie.replaceSelectedComment",
           "when": "editorHasSelection",
-          "group": "1_modification@1"
+          "group": "z_ilovelie@1"
         },
         {
           "command": "ilovelie.undoLastChange",
-          "group": "1_modification@2"
+          "group": "z_ilovelie@2"
         },
         {
           "command": "ilovelie.showHistory",
-          "group": "1_modification@3"
+          "group": "z_ilovelie@3"
         },
         {
           "command": "ilovelie.restoreFromHistory",
-          "group": "1_modification@4"
+          "group": "z_ilovelie@4"
         },
         {
           "command": "ilovelie.clearAllHistory",
-          "group": "1_modification@5"
+          "group": "z_ilovelie@5"
         }
       ],
       "commandPalette": [
