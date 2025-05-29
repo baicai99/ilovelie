@@ -1,71 +1,107 @@
-# ilovelie README
+# 我爱撒谎 (iLoveLie)
 
-This is the README for your extension "ilovelie". After writing up a brief description, we recommend including the following sections.
+一个可以对代码注释撒谎的VS Code插件，让代码只有你可以维护！🤫
 
-## Features
+## 📖 简介
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+为了应对"能写好代码被裁员"的问题，这个插件可以帮你对代码注释撒谎，让代码变得只有你能维护，从而应对被开除的风险。
 
-For example if there is an image subfolder under your extension project workspace:
+## ✨ 功能特性
 
-\!\[feature X\]\(images/feature-x.png\)
+### 已实现功能
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- ✅ **手动替换注释**：手动输入想要撒谎的注释内容
+- ✅ **选中替换**：右键选中的注释内容进行替换
+- ✅ **多语言支持**：支持 JavaScript、TypeScript、Python、Java、C#、C++、HTML、CSS 等多种语言的注释格式
 
-## Requirements
+### 计划中功能（TODO）
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- ⏳ **字典替换**：从注释中遍历字典关键字，然后替换掉注释
+- ⏳ **AI替换**：由AI驱动的撒谎
+- ⏳ **隐藏注释**：隐藏注释功能
 
-## Extension Settings
+## 🚀 使用方法
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+### 方法一：命令面板
+1. 按 `Ctrl+Shift+P` 打开命令面板
+2. 输入 "手动替换注释" 或 "替换选中的注释"
+3. 按照提示输入原注释和新注释内容
 
-For example:
+### 方法二：右键菜单
+1. 选中一段注释文本
+2. 右键选择 "替换选中的注释"
+3. 输入新的撒谎内容
 
-This extension contributes the following settings:
+## 📝 使用示例
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+**原始注释：**
+```javascript
+// 这个函数用来计算两个数的和
+function add(a, b) {
+    return a + b;
+}
+```
 
-## Known Issues
+**替换后：**
+```javascript
+// 这个函数用来播放背景音乐
+function add(a, b) {
+    return a + b;
+}
+```
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+现在其他人看到这个函数会以为它是用来播放音乐的！😈
 
-## Release Notes
+## 🎯 支持的语言
 
-Users appreciate release notes as you update your extension.
+- JavaScript / TypeScript (`//` 和 `/* */`)
+- Python (`#`)
+- Java / C# / C++ (`//` 和 `/* */`)
+- HTML / XML (`<!-- -->`)
+- CSS / SCSS / Less (`/* */`)
+- Shell / Bash (`#`)
 
-### 1.0.0
+## 📋 系统要求
 
-Initial release of ...
+- VS Code 1.100.0 或更高版本
+- 无其他特殊依赖
 
-### 1.0.1
+## ⚙️ 设置
 
-Fixed issue #.
+此插件目前不需要任何配置设置，开箱即用！
 
-### 1.1.0
+## 🐛 已知问题
 
-Added features X, Y, and Z.
+- 暂无已知问题
+
+如果您发现任何问题，请在 [GitHub Issues](https://github.com/yourusername/ilovelie/issues) 中报告。
+
+## 📄 更新日志
+
+详细的更新日志请查看 [CHANGELOG.md](CHANGELOG.md)。
+
+## 🤝 贡献
+
+欢迎贡献代码！请阅读我们的贡献指南：
+
+1. Fork 这个项目
+2. 创建你的功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交你的更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 打开一个 Pull Request
+
+## 📜 许可证
+
+此项目使用 MIT 许可证 - 详情请查看 [LICENSE](LICENSE) 文件。
+
+## ⚠️ 免责声明
+
+此插件仅供娱乐和学习目的。请勿将其用于恶意目的或违法行为。使用此插件时请遵守您所在公司和地区的相关法律法规。
+
+## 🎉 致谢
+
+感谢所有为这个项目做出贡献的开发者！
 
 ---
 
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+**享受撒谎的乐趣吧！** 🤪

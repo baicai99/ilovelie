@@ -1,9 +1,43 @@
-# Change Log
+# 更新日志
 
-All notable changes to the "ilovelie" extension will be documented in this file.
+此文件记录了"我爱撒谎"插件的所有重要变更。
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+格式基于 [Keep a Changelog](http://keepachangelog.com/)，
+版本遵循 [语义化版本](http://semver.org/)。
 
-## [Unreleased]
+## [未发布]
 
-- Initial release
+### 计划中
+- 字典替换功能：从注释中遍历字典关键字进行替换
+- AI驱动的撒谎功能
+- 隐藏注释功能
+
+## [0.0.1] - 2025-05-29
+
+### 新增
+- ✨ 手动替换注释功能
+- ✨ 选中文本替换注释功能
+- ✨ 支持多种编程语言的注释格式
+  - JavaScript/TypeScript (`//` 和 `/* */`)
+  - Python (`#`)
+  - Java/C#/C++ (`//` 和 `/* */`)
+  - HTML/XML (`<!-- -->`)
+  - CSS/SCSS/Less (`/* */`)
+  - Shell/Bash (`#`)
+- ✨ 命令面板集成
+- ✨ 右键菜单集成
+- ✨ 智能注释格式检测
+- ✨ 注释格式保持功能
+
+### 功能特点
+- 🎯 精确的注释识别和替换
+- 🌍 多语言支持
+- 🖱️ 友好的用户界面
+- ⚡ 实时替换效果
+- 😈 成功撒谎提示
+
+### 技术实现
+- 基于 VS Code Extension API
+- TypeScript 开发
+- ESLint 代码规范
+- esbuild 构建工具

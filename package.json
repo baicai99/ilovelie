@@ -1,23 +1,63 @@
 {
   "name": "ilovelie",
-  "displayName": "iLoveLie",
-  "description": "",
+  "displayName": "我爱撒谎",
+  "description": "一个可以对代码注释撒谎的VS Code插件，让代码只有你可以维护！",
   "version": "0.0.1",
+  "publisher": "your-publisher-name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ilovelie.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ilovelie/issues"
+  },
+  "homepage": "https://github.com/yourusername/ilovelie#readme",
   "engines": {
     "vscode": "^1.100.0"
   },
   "categories": [
     "Other"
   ],
+  "keywords": [
+    "comments",
+    "lie",
+    "obfuscation",
+    "code-protection"
+  ],
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "ilovelie.helloWorld",
-        "title": "Hello World"
+        "command": "ilovelie.replaceComment",
+        "title": "手动替换注释",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.replaceSelectedComment",
+        "title": "替换选中的注释",
+        "category": "我爱撒谎"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ilovelie.replaceSelectedComment",
+          "when": "editorHasSelection",
+          "group": "1_modification@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "ilovelie.replaceComment"
+        },
+        {
+          "command": "ilovelie.replaceSelectedComment",
+          "when": "editorHasSelection"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
