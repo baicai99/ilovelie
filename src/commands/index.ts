@@ -3,6 +3,7 @@ import { CommentReplacer } from '../commentReplacer';
 import { DictionaryReplacer } from '../dictionaryReplacer';
 import { RestoreManager } from '../restoreManager';
 import { TempStateManager } from '../tempStateManager';
+import { CommentDetector } from '../commentDetector';
 
 /**
  * 命令注册器
@@ -13,17 +14,20 @@ export class CommandRegistrar {
     private dictionaryReplacer: DictionaryReplacer;
     private restoreManager: RestoreManager;
     private tempStateManager: TempStateManager;
+    private commentDetector: CommentDetector;
 
     constructor(
         commentReplacer: CommentReplacer,
         dictionaryReplacer: DictionaryReplacer,
         restoreManager: RestoreManager,
-        tempStateManager: TempStateManager
+        tempStateManager: TempStateManager,
+        commentDetector: CommentDetector
     ) {
         this.commentReplacer = commentReplacer;
         this.dictionaryReplacer = dictionaryReplacer;
         this.restoreManager = restoreManager;
         this.tempStateManager = tempStateManager;
+        this.commentDetector = commentDetector;
     }
 
     /**
@@ -35,13 +39,18 @@ export class CommandRegistrar {
             {
                 id: 'ilovelie.replaceComment',
                 handler: () => this.commentReplacer.replaceComment()
-            }, {
+            },
+            {
                 id: 'ilovelie.replaceSelectedComment',
                 handler: () => this.commentReplacer.replaceSelectedComment()
             },
             {
                 id: 'ilovelie.dictionaryReplaceComments',
                 handler: () => this.dictionaryReplacer.dictionaryReplaceComments()
+            },
+            {
+                id: 'ilovelie.selectiveDictionaryReplace',
+                handler: () => this.dictionaryReplacer.selectiveDictionaryReplaceComments()
             },
 
             // 恢复相关命令
@@ -60,7 +69,8 @@ export class CommandRegistrar {
             {
                 id: 'ilovelie.clearAllHistory',
                 handler: () => this.restoreManager.clearAllHistory()
-            },            // 临时状态管理命令
+            },
+            // 临时状态管理命令
             {
                 id: 'ilovelie.toggleTruthLieState',
                 handler: () => this.tempStateManager.toggleTruthLieState()

@@ -23,6 +23,12 @@ function optimizeAlgorithm(value) {
 /* 单行的多行注释 */
 const variable = "test";
 
+// 创建新对象
+const obj = {};
+
+// 遍历数组元素
+const arr = [1, 2, 3];
+
 /*
 多行注释
 包含变量定义
@@ -32,5 +38,10 @@ class MyClass {
     // 构造函数初始化
     constructor() {
         this.value = 0;
+    }
+
+    // 获取结果数据
+    getResult() {
+        return this.value;
     }
 }

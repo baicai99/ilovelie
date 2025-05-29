@@ -36,12 +36,17 @@
       },
       {
         "command": "ilovelie.replaceSelectedComment",
-        "title": "替换选中的注释",
+        "title": "手动替换",
         "category": "我爱撒谎"
       },
       {
         "command": "ilovelie.dictionaryReplaceComments",
-        "title": "字典替换注释",
+        "title": "批量-字典替换注释",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.selectiveDictionaryReplace",
+        "title": "字典替换",
         "category": "我爱撒谎"
       },
       {
@@ -91,7 +96,6 @@
       "editor/context": [
         {
           "command": "ilovelie.replaceSelectedComment",
-          "when": "editorHasSelection",
           "group": "z_ilovelie@1"
         },
         {
@@ -99,16 +103,20 @@
           "group": "z_ilovelie@2"
         },
         {
-          "command": "ilovelie.undoLastChange",
+          "command": "ilovelie.selectiveDictionaryReplace",
           "group": "z_ilovelie@3"
         },
         {
-          "submenu": "ilovelie.history",
+          "command": "ilovelie.undoLastChange",
           "group": "z_ilovelie@4"
         },
         {
-          "command": "ilovelie.toggleTruthLieState",
+          "submenu": "ilovelie.history",
           "group": "z_ilovelie@5"
+        },
+        {
+          "command": "ilovelie.toggleTruthLieState",
+          "group": "z_ilovelie@6"
         }
       ],
       "ilovelie.history": [
@@ -130,11 +138,13 @@
           "command": "ilovelie.replaceComment"
         },
         {
-          "command": "ilovelie.replaceSelectedComment",
-          "when": "editorHasSelection"
+          "command": "ilovelie.replaceSelectedComment"
         },
         {
           "command": "ilovelie.dictionaryReplaceComments"
+        },
+        {
+          "command": "ilovelie.selectiveDictionaryReplace"
         },
         {
           "command": "ilovelie.undoLastChange"

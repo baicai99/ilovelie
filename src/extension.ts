@@ -43,7 +43,8 @@ export function activate(context: vscode.ExtensionContext) {
 		commentReplacer,
 		dictionaryReplacer,
 		restoreManager,
-		tempStateManager
+		tempStateManager,
+		commentDetector
 	);
 
 	// 注册所有命令
