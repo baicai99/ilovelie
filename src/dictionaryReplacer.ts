@@ -191,9 +191,7 @@ export class DictionaryReplacer {
      */
     public resetDictionary(): void {
         this.liesDictionary = createLiesDictionary();
-    }
-
-    /**
+    }    /**
      * 选择性字典替换注释功能
      * 让用户选择要替换哪些注释
      */
@@ -207,23 +205,23 @@ export class DictionaryReplacer {
         // 检测当前文件中的所有注释
         const comments = this.commentDetector.detectComments(editor.document);
 
+        console.log('检测到的注释数量:', comments.length);
+        console.log('字典大小:', this.liesDictionary.size);
+
         if (comments.length === 0) {
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
-        }
-
-        // 为每个注释生成预览信息
+        }// 为每个注释生成预览信息
         const commentItems: vscode.QuickPickItem[] = [];
-        const commentMap = new Map<string, { comment: any, lieText: string }>();
-
-        for (let i = 0; i < comments.length; i++) {
+        const commentDataArray: { comment: any, lieText: string }[] = []; for (let i = 0; i < comments.length; i++) {
             const comment = comments[i];
             const lieText = this.generateLieForComment(comment.text);
+
+            console.log(`注释${i + 1}: "${comment.text}" -> "${lieText}"`);
 
             if (lieText) {
                 const originalText = this.extractCommentContent(comment.text);
                 const lineNumber = comment.range.start.line + 1;
-                const id = `comment_${i}`;
 
                 commentItems.push({
                     label: `第${lineNumber}行: ${originalText}`,
@@ -232,9 +230,11 @@ export class DictionaryReplacer {
                     picked: false
                 });
 
-                commentMap.set(id, { comment, lieText });
+                commentDataArray.push({ comment, lieText });
             }
         }
+
+        console.log('可替换的注释数量:', commentItems.length);
 
         if (commentItems.length === 0) {
             vscode.window.showInformationMessage('没有找到可以替换的注释内容。');
@@ -251,15 +251,14 @@ export class DictionaryReplacer {
 
         if (!selectedItems || selectedItems.length === 0) {
             return;
-        }
-
-        // 执行替换
+        }        // 执行替换
         let replacedCount = 0;
         const results: SingleReplaceResult[] = [];
 
         const success = await editor.edit(editBuilder => {
             selectedItems.forEach((item, index) => {
-                const commentData = commentMap.get(`comment_${commentItems.indexOf(item)}`);
+                const itemIndex = commentItems.indexOf(item);
+                const commentData = commentDataArray[itemIndex];
                 if (commentData) {
                     const { comment, lieText } = commentData;
 
