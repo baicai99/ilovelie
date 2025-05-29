@@ -70,9 +70,7 @@ export class AIReplacer {
             return false;
         }
         return true;
-    }
-
-    /**
+    }    /**
      * 显示配置指南
      */
     private async showConfigurationGuide(): Promise<void> {
@@ -92,21 +90,31 @@ export class AIReplacer {
             async (message) => {
                 switch (message.command) {
                     case 'saveConfig':
-                        await this.saveConfiguration(message.apiKey, message.baseURL);
+                        await this.saveConfiguration(message.apiKey, message.baseURL, message.model);
                         panel.dispose();
                         break;
                     case 'testConfig':
-                        await this.testConfiguration(message.apiKey, message.baseURL);
+                        await this.testConfiguration(message.apiKey, message.baseURL, message.model);
+                        break;
+                    case 'resetConfig':
+                        await this.resetConfiguration();
+                        panel.webview.postMessage({
+                            type: 'configReset'
+                        });
                         break;
                 }
             }
         );
-    }
-
-    /**
+    }/**
      * 获取配置界面HTML内容
      */
     private getConfigurationWebviewContent(): string {
+        // 获取当前配置值
+        const config = vscode.workspace.getConfiguration('ilovelie');
+        const currentApiKey = config.get<string>('openaiApiKey') || '';
+        const currentBaseURL = config.get<string>('openaiBaseURL') || 'https://api.openai.com/v1';
+        const currentModel = config.get<string>('openaiModel') || 'gpt-4o-mini';
+
         return `<!DOCTYPE html>
 <html>
 <head>
@@ -132,7 +140,7 @@ export class AIReplacer {
             margin-bottom: 5px;
             font-weight: bold;
         }
-        input {
+        input, select {
             width: 100%;
             padding: 8px;
             border: 1px solid var(--vscode-input-border);
@@ -151,6 +159,13 @@ export class AIReplacer {
         }
         button:hover {
             background-color: var(--vscode-button-hoverBackground);
+        }
+        .secondary-button {
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+        .secondary-button:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
         }
         .info {
             background-color: var(--vscode-textBlockQuote-background);
@@ -178,6 +193,11 @@ export class AIReplacer {
             background-color: var(--vscode-inputValidation-errorBackground);
             color: var(--vscode-inputValidation-errorForeground);
         }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -186,7 +206,7 @@ export class AIReplacer {
         
         <div class="info">
             <h3>功能说明</h3>
-            <p>AI撒谎功能使用OpenAI的GPT-4o-mini模型来生成创意的撒谎内容，让你的注释变得更加有趣和迷惑人！</p>
+            <p>AI撒谎功能使用OpenAI的模型来生成创意的撒谎内容，让你的注释变得更加有趣和迷惑人！</p>
         </div>
 
         <div class="warning">
@@ -196,25 +216,38 @@ export class AIReplacer {
                 <li>API Key不会上传到服务器，只保存在本地</li>
                 <li>使用API会产生费用，请注意使用量</li>
                 <li>支持自定义API Base URL（用于代理或其他兼容的服务）</li>
+                <li>可以选择不同的模型，不同模型价格和性能不同</li>
             </ul>
         </div>
 
         <form>
             <div class="input-group">
                 <label for="apiKey">OpenAI API Key *</label>
-                <input type="password" id="apiKey" placeholder="sk-..." required>
+                <input type="password" id="apiKey" placeholder="sk-..." value="${currentApiKey}" required>
                 <small>从 <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI平台</a> 获取</small>
             </div>
 
             <div class="input-group">
-                <label for="baseURL">API Base URL (可选)</label>
-                <input type="url" id="baseURL" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1">
+                <label for="baseURL">API Base URL</label>
+                <input type="url" id="baseURL" placeholder="https://api.openai.com/v1" value="${currentBaseURL}">
                 <small>使用代理或其他兼容服务时修改此项</small>
             </div>
 
-            <div>
+            <div class="input-group">
+                <label for="model">OpenAI模型</label>
+                <select id="model">
+                    <option value="gpt-4o-mini" ${currentModel === 'gpt-4o-mini' ? 'selected' : ''}>gpt-4o-mini（推荐，便宜快速）</option>
+                    <option value="gpt-4o" ${currentModel === 'gpt-4o' ? 'selected' : ''}>gpt-4o（性能更强，费用较高）</option>
+                    <option value="gpt-4-turbo" ${currentModel === 'gpt-4-turbo' ? 'selected' : ''}>gpt-4-turbo（平衡性能和费用）</option>
+                    <option value="gpt-3.5-turbo" ${currentModel === 'gpt-3.5-turbo' ? 'selected' : ''}>gpt-3.5-turbo（经济实惠）</option>
+                </select>
+                <small>推荐使用 gpt-4o-mini，性价比最高</small>
+            </div>
+
+            <div class="button-group">
                 <button type="button" onclick="testConfiguration()">测试连接</button>
                 <button type="button" onclick="saveConfiguration()">保存配置</button>
+                <button type="button" class="secondary-button" onclick="resetToDefaults()">重置为默认值</button>
             </div>
 
             <div id="testResult" class="test-result"></div>
@@ -227,6 +260,7 @@ export class AIReplacer {
         function testConfiguration() {
             const apiKey = document.getElementById('apiKey').value;
             const baseURL = document.getElementById('baseURL').value;
+            const model = document.getElementById('model').value;
             
             if (!apiKey) {
                 showTestResult('请输入API Key', false);
@@ -238,14 +272,16 @@ export class AIReplacer {
             vscode.postMessage({
                 command: 'testConfig',
                 apiKey: apiKey,
-                baseURL: baseURL
+                baseURL: baseURL,
+                model: model
             });
         }
 
         function saveConfiguration() {
             const apiKey = document.getElementById('apiKey').value;
             const baseURL = document.getElementById('baseURL').value;
-            
+            const model = document.getElementById('model').value;
+
             if (!apiKey) {
                 showTestResult('请输入API Key', false);
                 return;
@@ -254,8 +290,17 @@ export class AIReplacer {
             vscode.postMessage({
                 command: 'saveConfig',
                 apiKey: apiKey,
-                baseURL: baseURL
+                baseURL: baseURL,
+                model: model
             });
+        }
+
+        function resetToDefaults() {
+            if (confirm('确定要重置为默认配置吗？这将清空所有已保存的配置。')) {
+                vscode.postMessage({
+                    command: 'resetConfig'
+                });
+            }
         }
 
         function showTestResult(message, success) {
@@ -277,20 +322,27 @@ export class AIReplacer {
             const message = event.data;
             if (message.type === 'testResult') {
                 showTestResult(message.message, message.success);
+            } else if (message.type === 'configReset') {
+                // 重置界面为默认值
+                document.getElementById('apiKey').value = '';
+                document.getElementById('baseURL').value = 'https://api.openai.com/v1';
+                document.getElementById('model').value = 'gpt-4o-mini';
+                showTestResult('配置已重置为默认值', true);
             }
         });
     </script>
 </body>
 </html>`;
-    }
-
-    /**
+    }    /**
      * 保存配置
      */
-    private async saveConfiguration(apiKey: string, baseURL: string): Promise<void> {
+    private async saveConfiguration(apiKey: string, baseURL: string, model?: string): Promise<void> {
         const config = vscode.workspace.getConfiguration('ilovelie');
         await config.update('openaiApiKey', apiKey, vscode.ConfigurationTarget.Global);
         await config.update('openaiBaseURL', baseURL, vscode.ConfigurationTarget.Global);
+        if (model) {
+            await config.update('openaiModel', model, vscode.ConfigurationTarget.Global);
+        }
 
         this.initializeOpenAI();
 
@@ -300,7 +352,7 @@ export class AIReplacer {
     /**
      * 测试配置
      */
-    private async testConfiguration(apiKey: string, baseURL: string): Promise<void> {
+    private async testConfiguration(apiKey: string, baseURL: string, model?: string): Promise<void> {
         try {
             const testClient = new OpenAI({
                 apiKey: apiKey,
@@ -309,7 +361,7 @@ export class AIReplacer {
 
             // 发送一个简单的测试请求
             await testClient.chat.completions.create({
-                model: 'gpt-4o-mini',
+                model: model || 'gpt-4o-mini',
                 messages: [{ role: 'user', content: 'Hello' }],
                 max_tokens: 1
             });
@@ -318,6 +370,20 @@ export class AIReplacer {
         } catch (error: any) {
             vscode.window.showErrorMessage(`❌ 连接测试失败：${error.message}`);
         }
+    }
+
+    /**
+     * 重置配置为默认值
+     */
+    private async resetConfiguration(): Promise<void> {
+        const config = vscode.workspace.getConfiguration('ilovelie');
+        await config.update('openaiApiKey', '', vscode.ConfigurationTarget.Global);
+        await config.update('openaiBaseURL', 'https://api.openai.com/v1', vscode.ConfigurationTarget.Global);
+        await config.update('openaiModel', 'gpt-4o-mini', vscode.ConfigurationTarget.Global);
+
+        this.initializeOpenAI();
+
+        vscode.window.showInformationMessage('🔄 配置已重置为默认值！');
     }
 
     /**
@@ -333,7 +399,7 @@ export class AIReplacer {
             .replace(/\s*-->$/, '')       // 移除结尾的 -->
             .replace(/^#+\s*/, '')        // 移除开头的 #
             // 移除中间可能出现的注释符号
-            .replace(/\/\/+/g, '')        // 移除所有 //
+            .replace(/\/\/+/g, '')        // 秼除所有 //
             .replace(/\/\*[\s\S]*?\*\//g, '') // 移除所有 /* */
             .replace(/<!--[\s\S]*?-->/g, '') // 移除所有 <!-- -->
             .trim();
@@ -361,11 +427,12 @@ export class AIReplacer {
 - "数据库连接" -> "图像渲染处理"
 - "用户验证" -> "音频解码算法"
 
-请生成一个类似的创意撒谎内容：`;
+请生成一个类似的创意撒谎内容：`; try {
+            const config = vscode.workspace.getConfiguration('ilovelie');
+            const model = config.get<string>('openaiModel') || 'gpt-4o-mini';
 
-        try {
             const response = await this.openai.chat.completions.create({
-                model: 'gpt-4o-mini',
+                model: model,
                 messages: [{ role: 'user', content: prompt }],
                 max_tokens: 100,
                 temperature: 0.8,
@@ -427,11 +494,12 @@ ${numberedComments}
 2. [第二个注释的虚假描述]
 ...
 
-请开始生成：`;
+请开始生成：`; try {
+            const config = vscode.workspace.getConfiguration('ilovelie');
+            const model = config.get<string>('openaiModel') || 'gpt-4o-mini';
 
-        try {
             const response = await this.openai.chat.completions.create({
-                model: 'gpt-4o-mini',
+                model: model,
                 messages: [{ role: 'user', content: prompt }],
                 max_tokens: Math.min(4000, originalComments.length * 50), // 动态调整token限制
                 temperature: 0.8,
@@ -979,6 +1047,13 @@ ${numberedComments}
         } catch (error: any) {
             vscode.window.showErrorMessage(`😅 AI选择性撒谎失败：${error.message}`);
         }
+    }
+
+    /**
+     * 直接打开配置中心
+     */
+    public async openConfigurationCenter(): Promise<void> {
+        await this.showConfigurationGuide();
     }
 
     /**

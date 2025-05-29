@@ -109,10 +109,9 @@ export class CommandRegistrar {
             {
                 id: 'ilovelie.aiSelectiveReplaceComments',
                 handler: () => this.aiReplacer.aiSelectiveReplaceComments()
-            },
-            {
+            }, {
                 id: 'ilovelie.configureAI',
-                handler: () => this.aiReplacer.checkConfiguration()
+                handler: () => this.aiReplacer.openConfigurationCenter()
             }
         ];
 

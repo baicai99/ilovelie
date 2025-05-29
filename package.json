@@ -57,21 +57,6 @@
         "category": "我爱撒谎"
       },
       {
-        "command": "ilovelie.showHistory",
-        "title": "查看撒谎历史",
-        "category": "我爱撒谎"
-      },
-      {
-        "command": "ilovelie.restoreFromHistory",
-        "title": "从历史中还原",
-        "category": "我爱撒谎"
-      },
-      {
-        "command": "ilovelie.clearAllHistory",
-        "title": "清除所有历史",
-        "category": "我爱撒谎"
-      },
-      {
         "command": "ilovelie.toggleTruthLieState",
         "title": "切换真话/撒谎状态",
         "category": "我爱撒谎"
@@ -107,8 +92,23 @@
         "category": "我爱撒谎"
       },
       {
+        "command": "ilovelie.showHistory",
+        "title": "查看撒谎历史",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.restoreFromHistory",
+        "title": "从历史中还原",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.clearAllHistory",
+        "title": "清除所有历史",
+        "category": "我爱撒谎"
+      },
+      {
         "command": "ilovelie.configureAI",
-        "title": "配置AI设置",
+        "title": "🤖 打开AI配置中心",
         "category": "我爱撒谎"
       }
     ],
@@ -126,40 +126,44 @@
           "group": "z_ilovelie@1"
         },
         {
-          "command": "ilovelie.dictionaryReplaceComments",
+          "command": "ilovelie.aiReplaceSelectedComment",
           "group": "z_ilovelie@2"
         },
         {
-          "command": "ilovelie.selectiveDictionaryReplace",
-          "group": "z_ilovelie@3"
-        },
-        {
-          "command": "ilovelie.undoLastChange",
-          "group": "z_ilovelie@4"
-        },
-        {
-          "submenu": "ilovelie.history",
+          "command": "ilovelie.dictionaryReplaceComments",
           "group": "z_ilovelie@5"
         },
         {
-          "command": "ilovelie.toggleTruthLieState",
+          "command": "ilovelie.selectiveDictionaryReplace",
           "group": "z_ilovelie@6"
         },
         {
-          "command": "ilovelie.toggleCommentVisibility",
+          "command": "ilovelie.aiBatchReplaceComments",
           "group": "z_ilovelie@7"
         },
         {
-          "command": "ilovelie.aiReplaceSelectedComment",
+          "command": "ilovelie.aiSelectiveReplaceComments",
           "group": "z_ilovelie@8"
         },
         {
-          "command": "ilovelie.aiBatchReplaceComments",
-          "group": "z_ilovelie@9"
+          "command": "ilovelie.toggleTruthLieState",
+          "group": "z_ilovelie@10"
         },
         {
-          "command": "ilovelie.aiSelectiveReplaceComments",
-          "group": "z_ilovelie@10"
+          "command": "ilovelie.toggleCommentVisibility",
+          "group": "z_ilovelie@11"
+        },
+        {
+          "command": "ilovelie.undoLastChange",
+          "group": "z_ilovelie@13"
+        },
+        {
+          "submenu": "ilovelie.history",
+          "group": "z_ilovelie@14"
+        },
+        {
+          "command": "ilovelie.configureAI",
+          "group": "z_ilovelie@16"
         }
       ],
       "ilovelie.history": [
@@ -240,6 +244,12 @@
           "type": "string",
           "default": "https://api.openai.com/v1",
           "description": "OpenAI API Base URL（支持代理或其他兼容服务）",
+          "scope": "application"
+        },
+        "ilovelie.openaiModel": {
+          "type": "string",
+          "default": "gpt-4o-mini",
+          "description": "使用的OpenAI模型（如 gpt-4o-mini, gpt-4, gpt-3.5-turbo 等）",
           "scope": "application"
         }
       }
