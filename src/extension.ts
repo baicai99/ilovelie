@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import { HistoryManager } from './historyManager';
 import { CommentDetector } from './commentDetector';
 import { CommentReplacer } from './commentReplacer';
+import { DictionaryReplacer } from './dictionaryReplacer';
 import { RestoreManager } from './restoreManager';
 import { TempStateManager } from './tempStateManager';
 import { CommandRegistrar } from './commands';
@@ -16,6 +17,7 @@ import { CommandRegistrar } from './commands';
 let historyManager: HistoryManager;
 let commentDetector: CommentDetector;
 let commentReplacer: CommentReplacer;
+let dictionaryReplacer: DictionaryReplacer;
 let restoreManager: RestoreManager;
 let tempStateManager: TempStateManager;
 let commandRegistrar: CommandRegistrar;
@@ -23,8 +25,8 @@ let commandRegistrar: CommandRegistrar;
 // 此方法在您的扩展被激活时调用
 // 您的扩展在命令首次执行时即被激活
 export function activate(context: vscode.ExtensionContext) {
-// 使用控制台输出诊断信息 (console.log) 和错误 (console.error)
-// 这行代码只会在您的扩展激活时执行一次
+	// 使用控制台输出诊断信息 (console.log) 和错误 (console.error)
+	// 这行代码只会在您的扩展激活时执行一次
 	console.log('Congratulations, your extension "我爱撒谎" is now active!');
 
 	// 初始化所有管理器
@@ -34,10 +36,12 @@ export function activate(context: vscode.ExtensionContext) {
 	restoreManager = new RestoreManager(historyManager);
 	tempStateManager = new TempStateManager(historyManager, restoreManager);
 	commentReplacer = new CommentReplacer(commentDetector, historyManager);
+	dictionaryReplacer = new DictionaryReplacer(commentDetector, historyManager);
 
 	// 初始化命令注册器并注册所有命令
 	commandRegistrar = new CommandRegistrar(
 		commentReplacer,
+		dictionaryReplacer,
 		restoreManager,
 		tempStateManager
 	);

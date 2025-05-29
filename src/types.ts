@@ -57,6 +57,28 @@ export type CommentFormat =
     | 'html-comment';     // <!-- -->
 
 /**
+ * 注释信息接口
+ */
+export interface CommentInfo {
+    text: string;
+    range: {
+        start: { line: number; character: number };
+        end: { line: number; character: number };
+    };
+    type: string;
+}
+
+/**
+ * 单个注释替换结果接口
+ */
+export interface SingleReplaceResult {
+    success: boolean;
+    originalText: string;
+    newText: string;
+    lineNumber: number;
+}
+
+/**
  * 替换结果接口
  */
 export interface ReplaceResult {

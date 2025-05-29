@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { CommentReplacer } from '../commentReplacer';
+import { DictionaryReplacer } from '../dictionaryReplacer';
 import { RestoreManager } from '../restoreManager';
 import { TempStateManager } from '../tempStateManager';
 
@@ -9,15 +10,18 @@ import { TempStateManager } from '../tempStateManager';
  */
 export class CommandRegistrar {
     private commentReplacer: CommentReplacer;
+    private dictionaryReplacer: DictionaryReplacer;
     private restoreManager: RestoreManager;
     private tempStateManager: TempStateManager;
 
     constructor(
         commentReplacer: CommentReplacer,
+        dictionaryReplacer: DictionaryReplacer,
         restoreManager: RestoreManager,
         tempStateManager: TempStateManager
     ) {
         this.commentReplacer = commentReplacer;
+        this.dictionaryReplacer = dictionaryReplacer;
         this.restoreManager = restoreManager;
         this.tempStateManager = tempStateManager;
     }
@@ -31,10 +35,13 @@ export class CommandRegistrar {
             {
                 id: 'ilovelie.replaceComment',
                 handler: () => this.commentReplacer.replaceComment()
-            },
-            {
+            }, {
                 id: 'ilovelie.replaceSelectedComment',
                 handler: () => this.commentReplacer.replaceSelectedComment()
+            },
+            {
+                id: 'ilovelie.dictionaryReplaceComments',
+                handler: () => this.dictionaryReplacer.dictionaryReplaceComments()
             },
 
             // 恢复相关命令

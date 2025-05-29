@@ -40,6 +40,11 @@
         "category": "我爱撒谎"
       },
       {
+        "command": "ilovelie.dictionaryReplaceComments",
+        "title": "字典替换注释",
+        "category": "我爱撒谎"
+      },
+      {
         "command": "ilovelie.undoLastChange",
         "title": "撤销上次撒谎",
         "category": "我爱撒谎"
@@ -90,16 +95,20 @@
           "group": "z_ilovelie@1"
         },
         {
-          "command": "ilovelie.undoLastChange",
+          "command": "ilovelie.dictionaryReplaceComments",
           "group": "z_ilovelie@2"
         },
         {
-          "submenu": "ilovelie.history",
+          "command": "ilovelie.undoLastChange",
           "group": "z_ilovelie@3"
         },
         {
-          "command": "ilovelie.toggleTruthLieState",
+          "submenu": "ilovelie.history",
           "group": "z_ilovelie@4"
+        },
+        {
+          "command": "ilovelie.toggleTruthLieState",
+          "group": "z_ilovelie@5"
         }
       ],
       "ilovelie.history": [
@@ -123,6 +132,9 @@
         {
           "command": "ilovelie.replaceSelectedComment",
           "when": "editorHasSelection"
+        },
+        {
+          "command": "ilovelie.dictionaryReplaceComments"
         },
         {
           "command": "ilovelie.undoLastChange"

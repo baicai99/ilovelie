@@ -1,4 +1,5 @@
-import { SupportedLanguage, CommentFormat } from './types';
+import * as vscode from 'vscode';
+import { SupportedLanguage, CommentFormat, CommentInfo } from './types';
 
 /**
  * 注释检测和处理器
@@ -152,5 +153,107 @@ export class CommentDetector {
      */
     private isHtmlComment(text: string): boolean {
         return text.startsWith('<!--') && text.endsWith('-->');
+    }    /**
+     * 检测文档中的所有注释
+     */
+    public detectComments(document: vscode.TextDocument): CommentInfo[] {
+        const comments: CommentInfo[] = [];
+        const languageId = document.languageId;
+
+        for (let i = 0; i < document.lineCount; i++) {
+            const line = document.lineAt(i);
+            const text = line.text.trim();
+
+            // 检测单行注释
+            if (this.isSlashComment(text) || this.isHashComment(text) || this.isHtmlComment(text)) {
+                let commentType = 'line';
+                if (this.isHtmlComment(text)) {
+                    commentType = 'html';
+                }
+
+                const startChar = line.firstNonWhitespaceCharacterIndex;
+                const endChar = line.text.length;
+
+                comments.push({
+                    text: line.text.substring(startChar),
+                    range: {
+                        start: { line: i, character: startChar },
+                        end: { line: i, character: endChar }
+                    },
+                    type: commentType
+                });
+            }
+            // 检测多行注释的开始
+            else if (text.includes('/*')) {
+                const multiLineComment = this.detectMultiLineComment(document, i);
+                if (multiLineComment) {
+                    comments.push(multiLineComment);
+                    // 跳过已处理的行
+                    i = multiLineComment.range.end.line;
+                }
+            }
+        }
+
+        return comments;
+    }
+
+    /**
+     * 检测多行注释块
+     */
+    private detectMultiLineComment(document: vscode.TextDocument, startLine: number): CommentInfo | null {
+        const startLineText = document.lineAt(startLine).text;
+        const startMatch = startLineText.match(/\/\*/);
+
+        if (!startMatch) {
+            return null;
+        }
+
+        const startChar = startMatch.index!;
+        let endLine = startLine;
+        let endChar = startLineText.length;
+        let commentText = '';
+
+        // 查找注释结束位置
+        for (let i = startLine; i < document.lineCount; i++) {
+            const line = document.lineAt(i);
+            const lineText = line.text;
+
+            if (i === startLine) {
+                // 检查是否在同一行结束
+                const endMatch = lineText.match(/\*\//);
+                if (endMatch && endMatch.index! > startChar) {
+                    endChar = endMatch.index! + 2;
+                    commentText = lineText.substring(startChar, endChar);
+                    break;
+                } else {
+                    commentText = lineText.substring(startChar);
+                }
+            } else {
+                const endMatch = lineText.match(/\*\//);
+                if (endMatch) {
+                    endLine = i;
+                    endChar = endMatch.index! + 2;
+                    commentText += '\n' + lineText.substring(0, endChar);
+                    break;
+                } else {
+                    commentText += '\n' + lineText;
+                }
+            }
+        }
+
+        // 确定注释类型
+        let commentType = 'block';
+        if (commentText.trim().startsWith('/**')) {
+            commentType = 'documentation';
+        }
+
+        return {
+            text: commentText,
+            range: {
+                start: { line: startLine, character: startChar },
+                end: { line: endLine, character: endChar }
+            },
+            type: commentType
+        };
     }
 }
