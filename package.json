@@ -58,6 +58,16 @@
         "command": "ilovelie.clearAllHistory",
         "title": "清除所有历史",
         "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.temporarilyRestoreAllLies",
+        "title": "一键暂时还原当前文件的所有撒谎",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.manuallyRestoreLies",
+        "title": "手动恢复撒谎状态",
+        "category": "我爱撒谎"
       }
     ],
     "menus": {
@@ -82,6 +92,14 @@
         {
           "command": "ilovelie.clearAllHistory",
           "group": "z_ilovelie@5"
+        },
+        {
+          "command": "ilovelie.temporarilyRestoreAllLies",
+          "group": "z_ilovelie@6"
+        },
+        {
+          "command": "ilovelie.manuallyRestoreLies",
+          "group": "z_ilovelie@7"
         }
       ],
       "commandPalette": [
@@ -103,9 +121,27 @@
         },
         {
           "command": "ilovelie.clearAllHistory"
+        },
+        {
+          "command": "ilovelie.temporarilyRestoreAllLies"
+        },
+        {
+          "command": "ilovelie.manuallyRestoreLies"
         }
       ]
-    }
+    },
+    "keybindings": [
+      {
+        "command": "ilovelie.temporarilyRestoreAllLies",
+        "key": "ctrl+shift+t",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "ilovelie.manuallyRestoreLies",
+        "key": "ctrl+shift+r",
+        "when": "editorTextFocus"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

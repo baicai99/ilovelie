@@ -23,6 +23,20 @@ interface HistoryRecord {
 let changeHistory: HistoryRecord[] = [];
 
 /**
+ * 临时还原状态接口
+ */
+interface TempRestoreState {
+	filePath: string;
+	restoredRecords: HistoryRecord[];
+	isTemporarilyRestored: boolean;
+}
+
+/**
+ * 临时还原状态存储
+ */
+let tempRestoreStates: Map<string, TempRestoreState> = new Map();
+
+/**
  * 扩展上下文，用于持久化存储
  */
 let extensionContext: vscode.ExtensionContext;
@@ -474,6 +488,177 @@ async function clearAllHistory() {
 	}
 }
 
+/**
+ * 一键暂时还原当前文件的所有撒谎注释
+ */
+async function temporarilyRestoreAllLies() {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor) {
+		vscode.window.showErrorMessage('请先打开一个文件！');
+		return;
+	}
+
+	const filePath = editor.document.uri.fsPath;
+
+	// 检查是否已经临时还原
+	if (tempRestoreStates.has(filePath) && tempRestoreStates.get(filePath)?.isTemporarilyRestored) {
+		vscode.window.showInformationMessage('当前文件已经处于临时还原状态！');
+		return;
+	}
+
+	// 获取当前文件的所有撒谎历史记录
+	const fileHistory = changeHistory.filter(record => record.filePath === filePath);
+
+	if (fileHistory.length === 0) {
+		vscode.window.showInformationMessage('当前文件没有撒谎历史记录');
+		return;
+	}
+
+	// 按照时间倒序排列，确保后面的更改不会被前面的覆盖
+	const sortedHistory = [...fileHistory].reverse();
+	const restoredRecords: HistoryRecord[] = [];
+
+	let successCount = 0;
+
+	// 逐个还原撒谎记录
+	for (const record of sortedHistory) {
+		const success = await restoreSpecificChange(record);
+		if (success) {
+			restoredRecords.push(record);
+			successCount++;
+		}
+	}
+
+	if (successCount > 0) {
+		// 保存临时还原状态
+		tempRestoreStates.set(filePath, {
+			filePath,
+			restoredRecords,
+			isTemporarilyRestored: true
+		});
+
+		vscode.window.showInformationMessage(
+			`✨ 已临时还原 ${successCount} 个撒谎注释！关闭文件后将自动恢复撒谎状态 😈`
+		);
+	} else {
+		vscode.window.showErrorMessage('没有成功还原任何撒谎记录，可能文件内容已被修改');
+	}
+}
+
+/**
+ * 恢复文件的撒谎状态
+ */
+async function restoreLieState(filePath: string) {
+	const tempState = tempRestoreStates.get(filePath);
+	if (!tempState || !tempState.isTemporarilyRestored) {
+		return;
+	}
+
+	// 尝试重新打开文件来恢复撒谎状态
+	try {
+		const document = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+		const editor = await vscode.window.showTextDocument(document);
+
+		let restoreCount = 0;
+
+		// 按照原来的顺序恢复撒谎记录
+		for (const record of tempState.restoredRecords) {
+			try {
+				// 查找当前位置的文本是否为原始文本
+				const range = new vscode.Range(
+					record.startPosition.line,
+					record.startPosition.character,
+					record.endPosition.line,
+					record.endPosition.character
+				);
+
+				const currentText = editor.document.getText(range);
+				if (currentText === record.originalText) {
+					// 恢复为撒谎文本
+					await editor.edit(editBuilder => {
+						editBuilder.replace(range, record.newText);
+					});
+					restoreCount++;
+				}
+			} catch (error) {
+				console.error('恢复撒谎状态失败:', error);
+			}
+		}
+
+		// 清除临时还原状态
+		tempRestoreStates.delete(filePath);
+
+		if (restoreCount > 0) {
+			vscode.window.showInformationMessage(
+				`😈 已恢复 ${restoreCount} 个撒谎注释！你的谎言又回来了~`
+			);
+		}
+
+		// 自动关闭文件
+		await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+	} catch (error) {
+		console.error('恢复撒谎状态时出错:', error);
+		// 即使出错也要清除状态
+		tempRestoreStates.delete(filePath);
+	}
+}
+
+/**
+ * 手动恢复撒谎状态
+ */
+async function manuallyRestoreLies() {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor) {
+		vscode.window.showErrorMessage('请先打开一个文件！');
+		return;
+	}
+
+	const filePath = editor.document.uri.fsPath;
+	const tempState = tempRestoreStates.get(filePath);
+
+	if (!tempState || !tempState.isTemporarilyRestored) {
+		vscode.window.showInformationMessage('当前文件没有处于临时还原状态');
+		return;
+	}
+
+	let restoreCount = 0;
+
+	// 按照原来的顺序恢复撒谎记录
+	for (const record of tempState.restoredRecords) {
+		try {
+			// 查找当前位置的文本是否为原始文本
+			const range = new vscode.Range(
+				record.startPosition.line,
+				record.startPosition.character,
+				record.endPosition.line,
+				record.endPosition.character
+			);
+
+			const currentText = editor.document.getText(range);
+			if (currentText === record.originalText) {
+				// 恢复为撒谎文本
+				await editor.edit(editBuilder => {
+					editBuilder.replace(range, record.newText);
+				});
+				restoreCount++;
+			}
+		} catch (error) {
+			console.error('恢复撒谎状态失败:', error);
+		}
+	}
+
+	// 清除临时还原状态
+	tempRestoreStates.delete(filePath);
+
+	if (restoreCount > 0) {
+		vscode.window.showInformationMessage(
+			`😈 已手动恢复 ${restoreCount} 个撒谎注释！你的谎言又回来了~`
+		);
+	} else {
+		vscode.window.showWarningMessage('没有成功恢复任何撒谎记录');
+	}
+}
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -486,6 +671,19 @@ export function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "我爱撒谎" is now active!');
+
+	// 监听文档关闭事件
+	const onDidCloseDocument = vscode.workspace.onDidCloseTextDocument((document) => {
+		const filePath = document.uri.fsPath;
+		const tempState = tempRestoreStates.get(filePath);
+
+		if (tempState && tempState.isTemporarilyRestored) {
+			// 延迟恢复撒谎状态，给用户一点时间看到提示
+			setTimeout(() => {
+				restoreLieState(filePath);
+			}, 1000);
+		}
+	});
 
 	// 注册手动替换注释命令
 	const replaceCommentDisposable = vscode.commands.registerCommand('ilovelie.replaceComment', replaceComment);
@@ -505,13 +703,26 @@ export function activate(context: vscode.ExtensionContext) {
 	// 注册清除历史命令
 	const clearAllHistoryDisposable = vscode.commands.registerCommand('ilovelie.clearAllHistory', clearAllHistory);
 
+	// 注册一键暂时还原命令
+	const temporarilyRestoreAllLiesDisposable = vscode.commands.registerCommand('ilovelie.temporarilyRestoreAllLies', temporarilyRestoreAllLies);
+
+	// 注册恢复撒谎状态命令
+	const restoreLieStateDisposable = vscode.commands.registerCommand('ilovelie.restoreLieState', restoreLieState);
+
+	// 注册手动恢复撒谎状态命令
+	const manuallyRestoreLiesDisposable = vscode.commands.registerCommand('ilovelie.manuallyRestoreLies', manuallyRestoreLies);
+
 	context.subscriptions.push(
 		replaceCommentDisposable,
 		replaceSelectedCommentDisposable,
 		undoLastChangeDisposable,
 		showHistoryDisposable,
 		restoreFromHistoryDisposable,
-		clearAllHistoryDisposable
+		clearAllHistoryDisposable,
+		temporarilyRestoreAllLiesDisposable,
+		restoreLieStateDisposable,
+		manuallyRestoreLiesDisposable,
+		onDidCloseDocument
 	);
 }
 
