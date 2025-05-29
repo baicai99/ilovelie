@@ -2,17 +2,17 @@
   "name": "ilovelie",
   "displayName": "我爱撒谎",
   "description": "一个可以对代码注释撒谎的VS Code插件，让代码只有你可以维护！",
-  "version": "0.1.0",
-  "publisher": "your-publisher-name",
+  "version": "1.0.0",
+  "publisher": "baicai99",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/ilovelie.git"
+    "url": "https://github.com/baicai99/ilovelie.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/ilovelie/issues"
+    "url": "https://github.com/baicai99/ilovelie/issues"
   },
-  "homepage": "https://github.com/yourusername/ilovelie#readme",
+  "homepage": "https://github.com/baicai99/ilovelie#readme",
   "engines": {
     "vscode": "^1.100.0"
   },
