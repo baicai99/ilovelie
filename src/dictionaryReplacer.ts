@@ -56,16 +56,14 @@ export class DictionaryReplacer {
                     // 保持注释格式，只替换内容
                     const formattedLie = this.formatCommentWithLie(comment.text, lieText, comment.type);
 
-                    editBuilder.replace(range, formattedLie);
-
-                    // 记录历史
+                    editBuilder.replace(range, formattedLie);                    // 记录历史
                     const historyRecord: HistoryRecord = {
                         id: this.generateId(),
                         filePath: editor.document.uri.fsPath,
-                        lineNumber: comment.range.start.line,
                         originalText: comment.text,
                         newText: formattedLie,
-                        timestamp: new Date(),
+                        timestamp: Date.now(),
+                        type: 'dictionary-replace',
                         startPosition: {
                             line: comment.range.start.line,
                             character: comment.range.start.character
@@ -271,16 +269,14 @@ export class DictionaryReplacer {
                     // 保持注释格式，只替换内容
                     const formattedLie = this.formatCommentWithLie(comment.text, lieText, comment.type);
 
-                    editBuilder.replace(range, formattedLie);
-
-                    // 记录历史
+                    editBuilder.replace(range, formattedLie);                    // 记录历史
                     const historyRecord: HistoryRecord = {
                         id: this.generateId(),
                         filePath: editor.document.uri.fsPath,
-                        lineNumber: comment.range.start.line,
                         originalText: comment.text,
                         newText: formattedLie,
-                        timestamp: new Date(),
+                        timestamp: Date.now(),
+                        type: 'dictionary-replace',
                         startPosition: {
                             line: comment.range.start.line,
                             character: comment.range.start.character

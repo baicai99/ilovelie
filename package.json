@@ -90,6 +90,26 @@
         "command": "ilovelie.toggleCommentVisibility",
         "title": "切换注释显示/隐藏",
         "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.aiReplaceSelectedComment",
+        "title": "AI替换选中注释",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.aiBatchReplaceComments",
+        "title": "批量-AI替换注释",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.aiSelectiveReplaceComments",
+        "title": "多选-AI替换",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.configureAI",
+        "title": "配置AI设置",
+        "category": "我爱撒谎"
       }
     ],
     "submenus": [
@@ -128,6 +148,18 @@
         {
           "command": "ilovelie.toggleCommentVisibility",
           "group": "z_ilovelie@7"
+        },
+        {
+          "command": "ilovelie.aiReplaceSelectedComment",
+          "group": "z_ilovelie@8"
+        },
+        {
+          "command": "ilovelie.aiBatchReplaceComments",
+          "group": "z_ilovelie@9"
+        },
+        {
+          "command": "ilovelie.aiSelectiveReplaceComments",
+          "group": "z_ilovelie@10"
         }
       ],
       "ilovelie.history": [
@@ -180,8 +212,37 @@
         },
         {
           "command": "ilovelie.toggleCommentVisibility"
+        },
+        {
+          "command": "ilovelie.aiReplaceSelectedComment"
+        },
+        {
+          "command": "ilovelie.aiBatchReplaceComments"
+        },
+        {
+          "command": "ilovelie.aiSelectiveReplaceComments"
+        },
+        {
+          "command": "ilovelie.configureAI"
         }
       ]
+    },
+    "configuration": {
+      "title": "我爱撒谎",
+      "properties": {
+        "ilovelie.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API Key（用于AI撒谎功能）",
+          "scope": "application"
+        },
+        "ilovelie.openaiBaseURL": {
+          "type": "string",
+          "default": "https://api.openai.com/v1",
+          "description": "OpenAI API Base URL（支持代理或其他兼容服务）",
+          "scope": "application"
+        }
+      }
     },
     "keybindings": [
       {
@@ -221,16 +282,19 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.100.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/vscode": "^1.100.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
-    "eslint": "^9.25.1",
-    "esbuild": "^0.25.3",
-    "npm-run-all": "^4.1.5",
-    "typescript": "^5.8.3",
     "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.25.3",
+    "eslint": "^9.25.1",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "openai": "^4.103.0"
   }
 }

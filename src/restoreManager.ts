@@ -40,14 +40,12 @@ export class RestoreManager {
             if (shouldContinue !== '是') {
                 return;
             }
-        }
-
-        // 精确还原最后一次更改
+        }        // 精确还原最后一次更改
         const success = await this.restoreSpecificChange(lastChange);
         if (success) {
             // 从历史记录中移除
             this.historyManager.removeLastRecord();
-            vscode.window.showInformationMessage(`已撤销对第${lastChange.lineNumber}行的更改 😇`);
+            vscode.window.showInformationMessage(`已撤销对第${lastChange.startPosition.line + 1}行的更改 😇`);
         } else {
             vscode.window.showErrorMessage('撤销失败，可能文件已被修改');
         }
@@ -62,10 +60,8 @@ export class RestoreManager {
         if (allRecords.length === 0) {
             vscode.window.showInformationMessage('还没有撒过谎呢！');
             return;
-        }
-
-        const items = allRecords.map((record, index) => ({
-            label: `第${record.lineNumber}行 - ${new Date(record.timestamp).toLocaleString()}`,
+        } const items = allRecords.map((record, index) => ({
+            label: `第${record.startPosition.line + 1}行 - ${new Date(record.timestamp).toLocaleString()}`,
             description: `${record.originalText.trim()} → ${record.newText.trim()}`,
             detail: record.filePath,
             index: index
@@ -107,10 +103,8 @@ export class RestoreManager {
         if (fileHistory.length === 0) {
             vscode.window.showInformationMessage('当前文件没有撒谎历史');
             return;
-        }
-
-        const items = fileHistory.map((record) => ({
-            label: `第${record.lineNumber}行 - ${new Date(record.timestamp).toLocaleString()}`,
+        } const items = fileHistory.map((record) => ({
+            label: `第${record.startPosition.line + 1}行 - ${new Date(record.timestamp).toLocaleString()}`,
             description: `撒谎内容：${record.newText.trim()}`,
             detail: `原始内容：${record.originalText.trim()}`,
             record: record
@@ -126,14 +120,12 @@ export class RestoreManager {
             return;
         }
 
-        const record = selected.record;
-
-        // 使用精确还原函数
+        const record = selected.record;        // 使用精确还原函数
         const success = await this.restoreSpecificChange(record);
         if (success) {
             // 从历史记录中移除
             this.historyManager.removeRecordById(record.id);
-            vscode.window.showInformationMessage(`第${record.lineNumber}行已还原为原始内容 😇`);
+            vscode.window.showInformationMessage(`第${record.startPosition.line + 1}行已还原为原始内容 😇`);
         } else {
             vscode.window.showErrorMessage('还原失败，可能文件内容已被修改');
         }

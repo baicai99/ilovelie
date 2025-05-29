@@ -22,24 +22,23 @@ export class HistoryManager {
      */
     private generateId(): string {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
-    }
-
-    /**
+    }    /**
      * 创建历史记录
      */
     public createHistoryRecord(
         filePath: string,
         originalText: string,
         newText: string,
-        range: vscode.Range
+        range: vscode.Range,
+        type: 'manual-replace' | 'dictionary-replace' | 'ai-replace' | 'ai-batch-replace' | 'ai-selective-replace' | 'hide-comment' = 'manual-replace'
     ): HistoryRecord {
         return {
             id: this.generateId(),
             filePath,
-            lineNumber: range.start.line + 1,
             originalText,
             newText,
-            timestamp: new Date(),
+            timestamp: Date.now(),
+            type: type,
             startPosition: { line: range.start.line, character: range.start.character },
             endPosition: { line: range.end.line, character: range.end.character }
         };
@@ -127,17 +126,16 @@ export class HistoryManager {
         if (this.extensionContext) {
             this.extensionContext.globalState.update('changeHistory', this.changeHistory);
         }
-    }
-
-    /**
+    }    /**
      * 从持久化存储加载历史记录
      */
     private loadHistory(): void {
         if (this.extensionContext) {
-            const savedHistory = this.extensionContext.globalState.get<HistoryRecord[]>('changeHistory', []);
+            const savedHistory = this.extensionContext.globalState.get<any[]>('changeHistory', []);
             this.changeHistory = savedHistory.map(record => ({
                 ...record,
-                timestamp: new Date(record.timestamp) // 确保timestamp是Date对象
+                timestamp: typeof record.timestamp === 'number' ? record.timestamp :
+                    (record.timestamp instanceof Date ? record.timestamp.getTime() : Date.now())
             }));
         }
     }

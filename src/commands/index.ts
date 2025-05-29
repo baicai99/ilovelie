@@ -5,6 +5,7 @@ import { RestoreManager } from '../restoreManager';
 import { TempStateManager } from '../tempStateManager';
 import { CommentDetector } from '../commentDetector';
 import { CommentHider } from '../commentHider';
+import { AIReplacer } from '../aiReplacer';
 
 /**
  * 命令注册器
@@ -14,9 +15,9 @@ export class CommandRegistrar {
     private commentReplacer: CommentReplacer;
     private dictionaryReplacer: DictionaryReplacer;
     private restoreManager: RestoreManager;
-    private tempStateManager: TempStateManager;
-    private commentDetector: CommentDetector;
+    private tempStateManager: TempStateManager; private commentDetector: CommentDetector;
     private commentHider: CommentHider;
+    private aiReplacer: AIReplacer;
 
     constructor(
         commentReplacer: CommentReplacer,
@@ -24,7 +25,8 @@ export class CommandRegistrar {
         restoreManager: RestoreManager,
         tempStateManager: TempStateManager,
         commentDetector: CommentDetector,
-        commentHider: CommentHider
+        commentHider: CommentHider,
+        aiReplacer: AIReplacer
     ) {
         this.commentReplacer = commentReplacer;
         this.dictionaryReplacer = dictionaryReplacer;
@@ -32,6 +34,7 @@ export class CommandRegistrar {
         this.tempStateManager = tempStateManager;
         this.commentDetector = commentDetector;
         this.commentHider = commentHider;
+        this.aiReplacer = aiReplacer;
     }
 
     /**
@@ -89,11 +92,27 @@ export class CommandRegistrar {
             }, {
                 id: 'ilovelie.manuallyRestoreLies',
                 handler: () => this.tempStateManager.manuallyRestoreLies()
-            },
-            // 注释隐藏命令
+            },            // 注释隐藏命令
             {
                 id: 'ilovelie.toggleCommentVisibility',
                 handler: () => this.commentHider.toggleCommentVisibility()
+            },
+            // AI撒谎命令
+            {
+                id: 'ilovelie.aiReplaceSelectedComment',
+                handler: () => this.aiReplacer.aiReplaceSingleComment()
+            },
+            {
+                id: 'ilovelie.aiBatchReplaceComments',
+                handler: () => this.aiReplacer.aiBatchReplaceComments()
+            },
+            {
+                id: 'ilovelie.aiSelectiveReplaceComments',
+                handler: () => this.aiReplacer.aiSelectiveReplaceComments()
+            },
+            {
+                id: 'ilovelie.configureAI',
+                handler: () => this.aiReplacer.checkConfiguration()
             }
         ];
 

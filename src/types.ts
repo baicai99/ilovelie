@@ -9,10 +9,10 @@
 export interface HistoryRecord {
     id: string; // 唯一ID
     filePath: string;
-    lineNumber: number;
     originalText: string;
     newText: string;
-    timestamp: Date;
+    timestamp: number;
+    type: 'manual-replace' | 'dictionary-replace' | 'ai-replace' | 'ai-batch-replace' | 'ai-selective-replace' | 'hide-comment';
     // 位置信息，使还原更准确
     startPosition: { line: number; character: number };
     endPosition: { line: number; character: number };

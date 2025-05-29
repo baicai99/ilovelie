@@ -67,27 +67,22 @@ export class CommentHider {
                 );
 
                 // 隐藏注释（用空字符串替换）
-                editBuilder.replace(range, '');
-
-                // 记录隐藏的注释
+                editBuilder.replace(range, '');                // 记录隐藏的注释
                 const hiddenRecord: HistoryRecord = {
                     id: this.generateId(),
                     filePath: filePath,
-                    lineNumber: comment.range.start.line,
                     originalText: comment.text,
                     newText: '',
-                    timestamp: new Date(),
+                    timestamp: Date.now(),
+                    type: 'hide-comment',
                     startPosition: {
                         line: comment.range.start.line,
                         character: comment.range.start.character
-                    },
-                    endPosition: {
+                    }, endPosition: {
                         line: comment.range.end.line,
                         character: comment.range.end.character
                     }
-                };
-
-                hiddenComments.set(comment.range.start.line, hiddenRecord);
+                }; hiddenComments.set(comment.range.start.line, hiddenRecord);
                 hiddenCount++;
             }
         });
@@ -114,24 +109,22 @@ export class CommentHider {
 
         // 按行号排序，从前往后恢复
         const sortedRecords = Array.from(fileHiddenComments.entries())
-            .sort(([lineA], [lineB]) => lineA - lineB);
+            .sort(([lineA], [lineB]) => lineA - lineB); const success = await editor.edit(editBuilder => {
+                for (const [lineNumber, record] of sortedRecords) {
+                    try {
+                        // 查找当前行的位置（可能由于之前的编辑而改变）
+                        const position = this.findInsertPosition(editor.document, record.startPosition.line);
 
-        const success = await editor.edit(editBuilder => {
-            for (const [lineNumber, record] of sortedRecords) {
-                try {
-                    // 查找当前行的位置（可能由于之前的编辑而改变）
-                    const position = this.findInsertPosition(editor.document, lineNumber);
-
-                    if (position !== null) {
-                        // 在找到的位置插入原始注释
-                        editBuilder.insert(position, record.originalText);
-                        restoredCount++;
+                        if (position !== null) {
+                            // 在找到的位置插入原始注释
+                            editBuilder.insert(position, record.originalText);
+                            restoredCount++;
+                        }
+                    } catch (error) {
+                        console.error('恢复注释时出错:', error);
                     }
-                } catch (error) {
-                    console.error('恢复注释时出错:', error);
                 }
-            }
-        });
+            });
 
         if (success && restoredCount > 0) {
             // 清除隐藏记录

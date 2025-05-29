@@ -12,6 +12,7 @@ import { DictionaryReplacer } from './dictionaryReplacer';
 import { RestoreManager } from './restoreManager';
 import { TempStateManager } from './tempStateManager';
 import { CommentHider } from './commentHider';
+import { AIReplacer } from './aiReplacer';
 import { CommandRegistrar } from './commands';
 
 // 全局实例
@@ -22,6 +23,7 @@ let dictionaryReplacer: DictionaryReplacer;
 let restoreManager: RestoreManager;
 let tempStateManager: TempStateManager;
 let commentHider: CommentHider;
+let aiReplacer: AIReplacer;
 let commandRegistrar: CommandRegistrar;
 
 // 此方法在您的扩展被激活时调用
@@ -40,6 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
 	commentReplacer = new CommentReplacer(commentDetector, historyManager);
 	dictionaryReplacer = new DictionaryReplacer(commentDetector, historyManager);
 	commentHider = new CommentHider(commentDetector, historyManager);
+	aiReplacer = new AIReplacer(commentDetector, historyManager);
 
 	// 初始化命令注册器并注册所有命令
 	commandRegistrar = new CommandRegistrar(
@@ -48,7 +51,8 @@ export function activate(context: vscode.ExtensionContext) {
 		restoreManager,
 		tempStateManager,
 		commentDetector,
-		commentHider
+		commentHider,
+		aiReplacer
 	);
 
 	// 注册所有命令
