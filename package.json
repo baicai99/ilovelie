@@ -2,7 +2,7 @@
   "name": "ilovelie",
   "displayName": "我爱撒谎",
   "description": "一个可以对代码注释撒谎的VS Code插件，让代码只有你可以维护！",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "publisher": "baicai99",
   "license": "MIT",
   "repository": {
@@ -85,6 +85,11 @@
         "command": "ilovelie.manuallyRestoreLies",
         "title": "恢复撒谎",
         "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.toggleCommentVisibility",
+        "title": "切换注释显示/隐藏",
+        "category": "我爱撒谎"
       }
     ],
     "submenus": [
@@ -119,6 +124,10 @@
         {
           "command": "ilovelie.toggleTruthLieState",
           "group": "z_ilovelie@6"
+        },
+        {
+          "command": "ilovelie.toggleCommentVisibility",
+          "group": "z_ilovelie@7"
         }
       ],
       "ilovelie.history": [
@@ -168,6 +177,9 @@
         },
         {
           "command": "ilovelie.manuallyRestoreLies"
+        },
+        {
+          "command": "ilovelie.toggleCommentVisibility"
         }
       ]
     },
@@ -185,6 +197,11 @@
       {
         "command": "ilovelie.manuallyRestoreLies",
         "key": "ctrl+shift+r",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "ilovelie.toggleCommentVisibility",
+        "key": "ctrl+shift+h",
         "when": "editorTextFocus"
       }
     ]

@@ -29,11 +29,14 @@
   - 跨文件操作提醒和确认
   - 历史记录持久化，重启VS Code后不丢失
 - ✅ **多语言支持**：支持 JavaScript、TypeScript、Python、Java、C#、C++、HTML、CSS 等多种语言的注释格式
+- ✅ **隐藏注释功能**：一键隐藏/显示所有注释，让代码看起来更"干净"
+  - **Toggle切换**：使用 `Ctrl+Shift+H` 快捷键或命令快速切换
+  - **智能恢复**：记住隐藏的注释，可以完美恢复
+  - **文件级管理**：每个文件独立管理隐藏状态
 
 ### 计划中功能（TODO）
 
 - ⏳ **AI替换**：由AI驱动的撒谎
-- ⏳ **隐藏注释**：隐藏注释功能
 
 ## 📦 安装方法
 
@@ -70,6 +73,7 @@ code --install-extension baicai99.ilovelie
    - "手动替换注释" - 批量替换注释
    - "字典替换注释" - 智能关键词替换
    - "替换选中的注释" - 替换选中的注释
+   - "切换注释显示/隐藏" - 一键隐藏或显示所有注释
    - "撤销上次撒谎" - 撤销最后一次操作
    - "查看撒谎历史" - 查看所有历史记录
    - "从历史中还原" - 选择特定记录还原
@@ -79,6 +83,7 @@ code --install-extension baicai99.ilovelie
 1. 在编辑器中右键，选择：
    - "替换选中的注释" - 替换选中的注释文本
    - "字典替换注释" - 自动替换当前文件的所有注释
+   - "切换注释显示/隐藏" - 一键隐藏或显示所有注释
 2. 或选中一段注释文本后右键选择对应功能
 3. 根据提示输入新内容（手动替换）或等待自动完成（字典替换）
 
@@ -88,6 +93,12 @@ code --install-extension baicai99.ilovelie
    - "查看撒谎历史" - 查看所有历史记录
    - "从历史中还原" - 选择特定记录进行精确还原
    - "清除所有历史" - 清除所有撒谎记录
+
+### 方法三：快捷键
+- `Ctrl+Shift+H` - 快速切换注释显示/隐藏状态
+- `Ctrl+Shift+T` - 切换真话/撒谎状态  
+- `Ctrl+Shift+Alt+T` - 临时还原所有撒谎
+- `Ctrl+Shift+R` - 恢复撒谎状态
 
 ## 📝 使用示例
 
@@ -161,6 +172,53 @@ function optimizeAlgorithm(array) {
 - 如果没有匹配关键词，会使用有趣的随机内容（如"用来驯服数字宠物"）
 
 现在其他人看到这些函数会完全搞不懂它们的真实用途！😈
+
+### 隐藏注释示例
+
+**隐藏前：**
+```javascript
+// 这个函数用来计算两个数的和
+function add(a, b) {
+    return a + b;
+}
+
+/* 
+ * 数据处理函数
+ * 用来验证用户输入
+ */
+function validateInput(data) {
+    return data.length > 0;
+}
+```
+
+**按 `Ctrl+Shift+H` 隐藏后：**
+```javascript
+function add(a, b) {
+    return a + b;
+}
+
+function validateInput(data) {
+    return data.length > 0;
+}
+```
+
+**再次按 `Ctrl+Shift+H` 恢复：**
+```javascript
+// 这个函数用来计算两个数的和
+function add(a, b) {
+    return a + b;
+}
+
+/* 
+ * 数据处理函数
+ * 用来验证用户输入
+ */
+function validateInput(data) {
+    return data.length > 0;
+}
+```
+
+现在代码看起来非常"干净"，没有任何注释痕迹！当需要时可以一键恢复所有隐藏的注释。
 
 ## 🎯 支持的语言和注释格式
 

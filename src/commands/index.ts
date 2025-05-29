@@ -4,6 +4,7 @@ import { DictionaryReplacer } from '../dictionaryReplacer';
 import { RestoreManager } from '../restoreManager';
 import { TempStateManager } from '../tempStateManager';
 import { CommentDetector } from '../commentDetector';
+import { CommentHider } from '../commentHider';
 
 /**
  * 命令注册器
@@ -15,19 +16,22 @@ export class CommandRegistrar {
     private restoreManager: RestoreManager;
     private tempStateManager: TempStateManager;
     private commentDetector: CommentDetector;
+    private commentHider: CommentHider;
 
     constructor(
         commentReplacer: CommentReplacer,
         dictionaryReplacer: DictionaryReplacer,
         restoreManager: RestoreManager,
         tempStateManager: TempStateManager,
-        commentDetector: CommentDetector
+        commentDetector: CommentDetector,
+        commentHider: CommentHider
     ) {
         this.commentReplacer = commentReplacer;
         this.dictionaryReplacer = dictionaryReplacer;
         this.restoreManager = restoreManager;
         this.tempStateManager = tempStateManager;
         this.commentDetector = commentDetector;
+        this.commentHider = commentHider;
     }
 
     /**
@@ -82,10 +86,14 @@ export class CommandRegistrar {
             {
                 id: 'ilovelie.restoreLieState',
                 handler: (filePath: string) => this.tempStateManager.restoreLieState(filePath)
-            },
-            {
+            }, {
                 id: 'ilovelie.manuallyRestoreLies',
                 handler: () => this.tempStateManager.manuallyRestoreLies()
+            },
+            // 注释隐藏命令
+            {
+                id: 'ilovelie.toggleCommentVisibility',
+                handler: () => this.commentHider.toggleCommentVisibility()
             }
         ];
 
@@ -93,11 +101,10 @@ export class CommandRegistrar {
         commands.forEach(command => {
             const disposable = vscode.commands.registerCommand(command.id, command.handler);
             context.subscriptions.push(disposable);
-        });
-
-        // 注册文档关闭事件监听器
+        });        // 注册文档关闭事件监听器
         const onDidCloseDocument = vscode.workspace.onDidCloseTextDocument((document) => {
             this.tempStateManager.handleDocumentClose(document);
+            this.commentHider.handleDocumentClose(document);
         });
 
         context.subscriptions.push(onDidCloseDocument);
