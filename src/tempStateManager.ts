@@ -15,6 +15,27 @@ export class TempStateManager {
     constructor(historyManager: HistoryManager, restoreManager: RestoreManager) {
         this.historyManager = historyManager;
         this.restoreManager = restoreManager;
+    }    /**
+     * 切换真话/撒谎状态
+     * 如果当前是撒谎状态，则临时还原真话；如果是临时还原状态，则恢复撒谎
+     */
+    public async toggleTruthLieState(): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('请先打开一个文件！');
+            return;
+        }
+
+        const filePath = editor.document.uri.fsPath;
+
+        // 检查当前状态
+        if (this.isTemporarilyRestored(filePath)) {
+            // 当前是临时还原状态，恢复撒谎
+            await this.manuallyRestoreLies();
+        } else {
+            // 当前是撒谎状态，临时还原真话
+            await this.temporarilyRestoreAllLies();
+        }
     }
 
     /**

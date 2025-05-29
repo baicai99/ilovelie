@@ -60,14 +60,26 @@
         "category": "我爱撒谎"
       },
       {
+        "command": "ilovelie.toggleTruthLieState",
+        "title": "切换真话/撒谎状态",
+        "category": "我爱撒谎"
+      },
+      {
         "command": "ilovelie.temporarilyRestoreAllLies",
-        "title": "一键暂时还原当前文件的所有撒谎",
+        "title": "临时还原真话",
         "category": "我爱撒谎"
       },
       {
         "command": "ilovelie.manuallyRestoreLies",
-        "title": "手动恢复撒谎状态",
+        "title": "恢复撒谎",
         "category": "我爱撒谎"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "ilovelie.history",
+        "label": "历史",
+        "icon": "$(history)"
       }
     ],
     "menus": {
@@ -82,24 +94,26 @@
           "group": "z_ilovelie@2"
         },
         {
-          "command": "ilovelie.showHistory",
+          "submenu": "ilovelie.history",
           "group": "z_ilovelie@3"
         },
         {
-          "command": "ilovelie.restoreFromHistory",
+          "command": "ilovelie.toggleTruthLieState",
           "group": "z_ilovelie@4"
+        }
+      ],
+      "ilovelie.history": [
+        {
+          "command": "ilovelie.showHistory",
+          "group": "history@1"
+        },
+        {
+          "command": "ilovelie.restoreFromHistory",
+          "group": "history@2"
         },
         {
           "command": "ilovelie.clearAllHistory",
-          "group": "z_ilovelie@5"
-        },
-        {
-          "command": "ilovelie.temporarilyRestoreAllLies",
-          "group": "z_ilovelie@6"
-        },
-        {
-          "command": "ilovelie.manuallyRestoreLies",
-          "group": "z_ilovelie@7"
+          "group": "history@3"
         }
       ],
       "commandPalette": [
@@ -123,6 +137,9 @@
           "command": "ilovelie.clearAllHistory"
         },
         {
+          "command": "ilovelie.toggleTruthLieState"
+        },
+        {
           "command": "ilovelie.temporarilyRestoreAllLies"
         },
         {
@@ -132,8 +149,13 @@
     },
     "keybindings": [
       {
-        "command": "ilovelie.temporarilyRestoreAllLies",
+        "command": "ilovelie.toggleTruthLieState",
         "key": "ctrl+shift+t",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "ilovelie.temporarilyRestoreAllLies",
+        "key": "ctrl+shift+alt+t",
         "when": "editorTextFocus"
       },
       {

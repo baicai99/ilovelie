@@ -53,9 +53,11 @@ export class CommandRegistrar {
             {
                 id: 'ilovelie.clearAllHistory',
                 handler: () => this.restoreManager.clearAllHistory()
+            },            // 临时状态管理命令
+            {
+                id: 'ilovelie.toggleTruthLieState',
+                handler: () => this.tempStateManager.toggleTruthLieState()
             },
-
-            // 临时状态管理命令
             {
                 id: 'ilovelie.temporarilyRestoreAllLies',
                 handler: () => this.tempStateManager.temporarilyRestoreAllLies()
