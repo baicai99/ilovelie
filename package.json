@@ -2,7 +2,7 @@
   "name": "ilovelie",
   "displayName": "我爱撒谎",
   "description": "一个可以对代码注释撒谎的VS Code插件，让代码只有你可以维护！",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "your-publisher-name",
   "license": "MIT",
   "repository": {
@@ -38,6 +38,26 @@
         "command": "ilovelie.replaceSelectedComment",
         "title": "替换选中的注释",
         "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.undoLastChange",
+        "title": "撤销上次撒谎",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.showHistory",
+        "title": "查看撒谎历史",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.restoreFromHistory",
+        "title": "从历史中还原",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.clearAllHistory",
+        "title": "清除所有历史",
+        "category": "我爱撒谎"
       }
     ],
     "menus": {
@@ -46,6 +66,22 @@
           "command": "ilovelie.replaceSelectedComment",
           "when": "editorHasSelection",
           "group": "1_modification@1"
+        },
+        {
+          "command": "ilovelie.undoLastChange",
+          "group": "1_modification@2"
+        },
+        {
+          "command": "ilovelie.showHistory",
+          "group": "1_modification@3"
+        },
+        {
+          "command": "ilovelie.restoreFromHistory",
+          "group": "1_modification@4"
+        },
+        {
+          "command": "ilovelie.clearAllHistory",
+          "group": "1_modification@5"
         }
       ],
       "commandPalette": [
@@ -55,6 +91,18 @@
         {
           "command": "ilovelie.replaceSelectedComment",
           "when": "editorHasSelection"
+        },
+        {
+          "command": "ilovelie.undoLastChange"
+        },
+        {
+          "command": "ilovelie.showHistory"
+        },
+        {
+          "command": "ilovelie.restoreFromHistory"
+        },
+        {
+          "command": "ilovelie.clearAllHistory"
         }
       ]
     }
