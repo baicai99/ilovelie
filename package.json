@@ -52,11 +52,6 @@
         "category": "我爱撒谎"
       },
       {
-        "command": "ilovelie.undoLastChange",
-        "title": "撤销上次撒谎",
-        "category": "我爱撒谎"
-      },
-      {
         "command": "ilovelie.toggleCommentVisibility",
         "title": "切换注释显示/隐藏",
         "category": "我爱撒谎"
@@ -135,10 +130,6 @@
           "group": "z_ilovelie@11"
         },
         {
-          "command": "ilovelie.undoLastChange",
-          "group": "z_ilovelie@13"
-        },
-        {
           "submenu": "ilovelie.history",
           "group": "z_ilovelie@14"
         },
@@ -173,9 +164,6 @@
         },
         {
           "command": "ilovelie.selectiveDictionaryReplace"
-        },
-        {
-          "command": "ilovelie.undoLastChange"
         },
         {
           "command": "ilovelie.showHistory"

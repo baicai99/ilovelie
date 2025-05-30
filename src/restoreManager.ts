@@ -14,44 +14,6 @@ export class RestoreManager {
     }
 
     /**
-     * 撤销上次更改
-     */
-    public async undoLastChange(): Promise<void> {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showErrorMessage('请先打开一个文件！');
-            return;
-        }
-
-        const lastChange = this.historyManager.getLastRecord();
-        if (!lastChange) {
-            vscode.window.showInformationMessage('没有可撤销的更改');
-            return;
-        }
-
-        const currentFilePath = editor.document.uri.fsPath;
-
-        // 检查是否是当前文件的更改
-        if (lastChange.filePath !== currentFilePath) {
-            const shouldContinue = await vscode.window.showWarningMessage(
-                '最后一次更改不是当前文件，是否要撤销？',
-                '是', '否'
-            );
-            if (shouldContinue !== '是') {
-                return;
-            }
-        }        // 精确还原最后一次更改
-        const success = await this.restoreSpecificChange(lastChange);
-        if (success) {
-            // 从历史记录中移除
-            this.historyManager.removeLastRecord();
-            vscode.window.showInformationMessage(`已撤销对第${lastChange.startPosition.line + 1}行的更改 😇`);
-        } else {
-            vscode.window.showErrorMessage('撤销失败，可能文件已被修改');
-        }
-    }
-
-    /**
      * 显示历史记录
      */
     public async showHistory(): Promise<void> {

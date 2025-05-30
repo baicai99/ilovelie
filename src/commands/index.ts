@@ -54,12 +54,6 @@ export class CommandRegistrar {
                 id: 'ilovelie.selectiveDictionaryReplace',
                 handler: () => this.dictionaryReplacer.selectiveDictionaryReplaceComments()
             },
-
-            // 恢复相关命令
-            {
-                id: 'ilovelie.undoLastChange',
-                handler: () => this.restoreManager.undoLastChange()
-            },
             {
                 id: 'ilovelie.showHistory',
                 handler: () => this.restoreManager.showHistory()

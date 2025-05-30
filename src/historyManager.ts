@@ -67,28 +67,10 @@ export class HistoryManager {
     }
 
     /**
-     * 获取最后一条记录
-     */
-    public getLastRecord(): HistoryRecord | null {
-        return this.changeHistory.length > 0 ? this.changeHistory[this.changeHistory.length - 1] : null;
-    }
-
-    /**
      * 根据ID查找记录
      */
     public getRecordById(id: string): HistoryRecord | null {
         return this.changeHistory.find(record => record.id === id) || null;
-    }
-
-    /**
-     * 移除最后一条记录
-     */
-    public removeLastRecord(): HistoryRecord | null {
-        const record = this.changeHistory.pop();
-        if (record) {
-            this.saveHistory();
-        }
-        return record || null;
     }
 
     /**
