@@ -5,6 +5,17 @@
 格式基于 [Keep a Changelog](http://keepachangelog.com/)，
 版本遵循 [语义化版本](http://semver.org/)。
 
+## [1.1.1] - 2025-05-30
+
+### 移除
+- ❌ **删除临时还原功能**：完全移除临时还原相关的所有功能
+  - 移除 `toggleTruthLieState()` 方法和 `Ctrl+Shift+T` 快捷键
+  - 移除 `temporarilyRestoreAllLies()` 方法和 `Ctrl+Shift+Alt+T` 快捷键  
+  - 移除 `manuallyRestoreLies()` 方法和 `Ctrl+Shift+R` 快捷键
+  - 删除 `TempStateManager` 类和相关类型定义
+  - 移除右键菜单和命令面板中的临时还原选项
+  - 保留基础的撒谎和历史恢复功能
+
 ## [1.0.2] - 2025-05-29
 
 ### 🎉 重大新增

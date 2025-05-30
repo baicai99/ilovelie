@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { CommentReplacer } from '../commentReplacer';
 import { DictionaryReplacer } from '../dictionaryReplacer';
 import { RestoreManager } from '../restoreManager';
-import { TempStateManager } from '../tempStateManager';
 import { CommentDetector } from '../commentDetector';
 import { CommentHider } from '../commentHider';
 import { AIReplacer } from '../aiReplacer';
@@ -15,15 +14,12 @@ export class CommandRegistrar {
     private commentReplacer: CommentReplacer;
     private dictionaryReplacer: DictionaryReplacer;
     private restoreManager: RestoreManager;
-    private tempStateManager: TempStateManager; private commentDetector: CommentDetector;
+    private commentDetector: CommentDetector;
     private commentHider: CommentHider;
-    private aiReplacer: AIReplacer;
-
-    constructor(
+    private aiReplacer: AIReplacer; constructor(
         commentReplacer: CommentReplacer,
         dictionaryReplacer: DictionaryReplacer,
         restoreManager: RestoreManager,
-        tempStateManager: TempStateManager,
         commentDetector: CommentDetector,
         commentHider: CommentHider,
         aiReplacer: AIReplacer
@@ -31,7 +27,6 @@ export class CommandRegistrar {
         this.commentReplacer = commentReplacer;
         this.dictionaryReplacer = dictionaryReplacer;
         this.restoreManager = restoreManager;
-        this.tempStateManager = tempStateManager;
         this.commentDetector = commentDetector;
         this.commentHider = commentHider;
         this.aiReplacer = aiReplacer;
@@ -77,22 +72,8 @@ export class CommandRegistrar {
                 id: 'ilovelie.clearAllHistory',
                 handler: () => this.restoreManager.clearAllHistory()
             },
-            // 临时状态管理命令
-            {
-                id: 'ilovelie.toggleTruthLieState',
-                handler: () => this.tempStateManager.toggleTruthLieState()
-            },
-            {
-                id: 'ilovelie.temporarilyRestoreAllLies',
-                handler: () => this.tempStateManager.temporarilyRestoreAllLies()
-            },
-            {
-                id: 'ilovelie.restoreLieState',
-                handler: (filePath: string) => this.tempStateManager.restoreLieState(filePath)
-            }, {
-                id: 'ilovelie.manuallyRestoreLies',
-                handler: () => this.tempStateManager.manuallyRestoreLies()
-            },            // 注释隐藏命令
+
+            // 注释隐藏命令
             {
                 id: 'ilovelie.toggleCommentVisibility',
                 handler: () => this.commentHider.toggleCommentVisibility()
@@ -121,7 +102,6 @@ export class CommandRegistrar {
             context.subscriptions.push(disposable);
         });        // 注册文档关闭事件监听器
         const onDidCloseDocument = vscode.workspace.onDidCloseTextDocument((document) => {
-            this.tempStateManager.handleDocumentClose(document);
             this.commentHider.handleDocumentClose(document);
         });
 

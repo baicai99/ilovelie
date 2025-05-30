@@ -57,21 +57,6 @@
         "category": "我爱撒谎"
       },
       {
-        "command": "ilovelie.toggleTruthLieState",
-        "title": "切换真话/撒谎状态",
-        "category": "我爱撒谎"
-      },
-      {
-        "command": "ilovelie.temporarilyRestoreAllLies",
-        "title": "临时还原真话",
-        "category": "我爱撒谎"
-      },
-      {
-        "command": "ilovelie.manuallyRestoreLies",
-        "title": "恢复撒谎",
-        "category": "我爱撒谎"
-      },
-      {
         "command": "ilovelie.toggleCommentVisibility",
         "title": "切换注释显示/隐藏",
         "category": "我爱撒谎"
@@ -146,10 +131,6 @@
           "group": "z_ilovelie@8"
         },
         {
-          "command": "ilovelie.toggleTruthLieState",
-          "group": "z_ilovelie@10"
-        },
-        {
           "command": "ilovelie.toggleCommentVisibility",
           "group": "z_ilovelie@11"
         },
@@ -206,15 +187,6 @@
           "command": "ilovelie.clearAllHistory"
         },
         {
-          "command": "ilovelie.toggleTruthLieState"
-        },
-        {
-          "command": "ilovelie.temporarilyRestoreAllLies"
-        },
-        {
-          "command": "ilovelie.manuallyRestoreLies"
-        },
-        {
           "command": "ilovelie.toggleCommentVisibility"
         },
         {
@@ -255,21 +227,6 @@
       }
     },
     "keybindings": [
-      {
-        "command": "ilovelie.toggleTruthLieState",
-        "key": "ctrl+shift+t",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "ilovelie.temporarilyRestoreAllLies",
-        "key": "ctrl+shift+alt+t",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "ilovelie.manuallyRestoreLies",
-        "key": "ctrl+shift+r",
-        "when": "editorTextFocus"
-      },
       {
         "command": "ilovelie.toggleCommentVisibility",
         "key": "ctrl+shift+h",

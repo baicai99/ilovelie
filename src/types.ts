@@ -19,15 +19,6 @@ export interface HistoryRecord {
 }
 
 /**
- * 临时还原状态接口
- */
-export interface TempRestoreState {
-    filePath: string;
-    restoredRecords: HistoryRecord[];
-    isTemporarilyRestored: boolean;
-}
-
-/**
  * 支持的编程语言类型
  */
 export type SupportedLanguage =
