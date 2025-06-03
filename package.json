@@ -110,6 +110,16 @@
         "command": "ilovelie.configureAI",
         "title": "🤖 打开AI配置中心",
         "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.toggleTruthState",
+        "title": "🔄 切换真话/假话",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.showCurrentStatus",
+        "title": "📊 显示当前状态",
+        "category": "我爱撒谎"
       }
     ],
     "submenus": [
@@ -166,8 +176,16 @@
           "group": "z_ilovelie@13"
         },
         {
-          "submenu": "ilovelie.history",
+          "command": "ilovelie.toggleTruthState",
           "group": "z_ilovelie@14"
+        },
+        {
+          "command": "ilovelie.showCurrentStatus",
+          "group": "z_ilovelie@15"
+        },
+        {
+          "submenu": "ilovelie.history",
+          "group": "z_ilovelie@16"
         },
         {
           "command": "ilovelie.configureAI",

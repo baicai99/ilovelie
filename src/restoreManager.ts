@@ -7,7 +7,7 @@ import { HistoryManager } from './historyManager';
  * 负责处理所有恢复相关的操作
  */
 export class RestoreManager {
-    private historyManager: HistoryManager;
+    public historyManager: HistoryManager;
 
     constructor(historyManager: HistoryManager) {
         this.historyManager = historyManager;

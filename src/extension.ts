@@ -13,6 +13,7 @@ import { DictionaryReplacer } from './dictionaryReplacer';
 import { RestoreManager } from './restoreManager';
 import { CommentHider } from './commentHider';
 import { AIReplacer } from './aiReplacer';
+import { ToggleManager } from './toggleManager';
 import { CommandRegistrar } from './commands';
 
 // 全局实例
@@ -24,6 +25,7 @@ let dictionaryReplacer: DictionaryReplacer;
 let restoreManager: RestoreManager;
 let commentHider: CommentHider;
 let aiReplacer: AIReplacer;
+let toggleManager: ToggleManager;
 let commandRegistrar: CommandRegistrar;
 
 // 此方法在您的扩展被激活时调用
@@ -31,16 +33,20 @@ let commandRegistrar: CommandRegistrar;
 export function activate(context: vscode.ExtensionContext) {
 	// 使用控制台输出诊断信息 (console.log) 和错误 (console.error)
 	// 这行代码只会在您的扩展激活时执行一次
-	console.log('Congratulations, your extension "我爱撒谎" is now active!');	// 初始化所有管理器
+	console.log('Congratulations, your extension "我爱撒谎" is now active!');
+	// 初始化所有管理器
 	historyManager = new HistoryManager();
 	historyManager.initialize(context);
 	commentDetector = new CommentDetector();
 	commentScanner = new CommentScanner();
 	restoreManager = new RestoreManager(historyManager);
-	commentReplacer = new CommentReplacer(commentDetector, historyManager);
-	dictionaryReplacer = new DictionaryReplacer(commentDetector, historyManager);
+	toggleManager = new ToggleManager(historyManager, commentScanner);
+	// 传递toggleManager给需要它的替换器
+	commentReplacer = new CommentReplacer(commentDetector, historyManager, toggleManager);
+	dictionaryReplacer = new DictionaryReplacer(commentDetector, historyManager, toggleManager);
 	commentHider = new CommentHider(commentDetector, historyManager);
-	aiReplacer = new AIReplacer(commentDetector, historyManager);
+	aiReplacer = new AIReplacer(commentDetector, historyManager, toggleManager);
+
 	// 初始化命令注册器并注册所有命令
 	commandRegistrar = new CommandRegistrar(
 		commentReplacer,
@@ -49,11 +55,18 @@ export function activate(context: vscode.ExtensionContext) {
 		commentDetector,
 		commentHider,
 		aiReplacer,
-		commentScanner
+		commentScanner,
+		toggleManager
 	);
+
 	// 注册所有命令
 	commandRegistrar.registerCommands(context);
 }
 
 // 此方法在您的扩展被停用时调用
-export function deactivate() { }
+export function deactivate() {
+	// 清理资源
+	if (toggleManager) {
+		toggleManager.dispose();
+	}
+}

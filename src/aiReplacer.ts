@@ -8,6 +8,7 @@ import { CommentDetector } from './commentDetector';
 import { CommentScanner, ScannedComment, ScanResult } from './commentScanner';
 import { HistoryManager } from './historyManager';
 import { HistoryRecord } from './types';
+import { ToggleManager } from './toggleManager';
 
 export interface AIReplaceResult {
     success: boolean;
@@ -21,13 +22,15 @@ export class AIReplacer {
     private commentDetector: CommentDetector;
     private commentScanner: CommentScanner;
     private historyManager: HistoryManager;
+    private toggleManager?: ToggleManager;
     private openai: OpenAI | null = null;
     private isConfigured = false;
 
-    constructor(commentDetector: CommentDetector, historyManager: HistoryManager) {
+    constructor(commentDetector: CommentDetector, historyManager: HistoryManager, toggleManager?: ToggleManager) {
         this.commentDetector = commentDetector;
         this.commentScanner = new CommentScanner();
         this.historyManager = historyManager;
+        this.toggleManager = toggleManager;
         this.initializeOpenAI();
     }
 
@@ -629,6 +632,8 @@ ${numberedComments}
                 }
             });
 
+            // 通知toggle manager状态已更新
+            this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
             vscode.window.showInformationMessage('🎉 AI撒谎替换完成！代码注释已被AI完美伪装。');
 
         } catch (error: any) {
@@ -804,6 +809,8 @@ ${numberedComments}
             });
 
             const failedCount = results.filter(r => !r.success).length; if (success && replacedCount > 0) {
+                // 通知toggle manager状态已更新
+                this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
                 let message = `🎉 AI批量撒谎完成！成功替换了 ${replacedCount} 个注释`;
                 if (failedCount > 0) {
                     message += `，${failedCount} 个失败`;
@@ -1013,9 +1020,9 @@ ${numberedComments}
                         replacedCount++;
                     }
                 }
-            }); const failedCount = results.filter(r => !r.success).length;
-
-            if (success && replacedCount > 0) {
+            }); const failedCount = results.filter(r => !r.success).length; if (success && replacedCount > 0) {
+                // 通知toggle manager状态已更新
+                this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
                 let message = `🎉 AI选择性撒谎完成！成功替换了 ${replacedCount} 个注释`;
                 if (failedCount > 0) {
                     message += `，${failedCount} 个失败`;

@@ -6,6 +6,7 @@ import { CommentDetector } from '../commentDetector';
 import { CommentHider } from '../commentHider';
 import { AIReplacer } from '../aiReplacer';
 import { CommentScanner } from '../commentScanner';
+import { ToggleManager } from '../toggleManager';
 
 /**
  * 命令注册器
@@ -19,6 +20,7 @@ export class CommandRegistrar {
     private commentHider: CommentHider;
     private aiReplacer: AIReplacer;
     private commentScanner: CommentScanner;
+    private toggleManager: ToggleManager;
 
     constructor(
         commentReplacer: CommentReplacer,
@@ -27,7 +29,8 @@ export class CommandRegistrar {
         commentDetector: CommentDetector,
         commentHider: CommentHider,
         aiReplacer: AIReplacer,
-        commentScanner: CommentScanner
+        commentScanner: CommentScanner,
+        toggleManager: ToggleManager
     ) {
         this.commentReplacer = commentReplacer;
         this.dictionaryReplacer = dictionaryReplacer;
@@ -36,6 +39,7 @@ export class CommandRegistrar {
         this.commentHider = commentHider;
         this.aiReplacer = aiReplacer;
         this.commentScanner = commentScanner;
+        this.toggleManager = toggleManager;
     }
 
     /**
@@ -99,9 +103,7 @@ export class CommandRegistrar {
             }, {
                 id: 'ilovelie.configureAI',
                 handler: () => this.aiReplacer.openConfigurationCenter()
-            },
-
-            // 注释扫描命令
+            },            // 注释扫描命令
             {
                 id: 'ilovelie.scanComments',
                 handler: () => this.scanAndShowComments()
@@ -109,6 +111,18 @@ export class CommandRegistrar {
             {
                 id: 'ilovelie.showCommentStatistics',
                 handler: () => this.showCommentStatistics()
+            },            // 真话假话切换命令
+            {
+                id: 'ilovelie.toggleTruthState',
+                handler: () => this.toggleTruthState()
+            },
+            {
+                id: 'ilovelie.showCurrentStatus',
+                handler: () => this.toggleManager.showCurrentStatus()
+            },
+            {
+                id: 'ilovelie.clearCurrentFileHistory',
+                handler: () => this.clearCurrentFileHistory()
             }
         ];
 
@@ -119,6 +133,8 @@ export class CommandRegistrar {
         });        // 注册文档关闭事件监听器
         const onDidCloseDocument = vscode.workspace.onDidCloseTextDocument((document) => {
             this.commentHider.handleDocumentClose(document);
+            // 清理toggle状态
+            this.toggleManager.cleanupDocumentState(document.uri.toString());
         });
 
         context.subscriptions.push(onDidCloseDocument);
@@ -274,6 +290,72 @@ export class CommandRegistrar {
 
         } catch (error) {
             vscode.window.showErrorMessage(`导出统计信息失败: ${error}`);
+        }
+    }    /**
+     * 切换真话假话状态
+     */
+    private async toggleTruthState(): Promise<void> {
+        try {
+            const result = await this.toggleManager.toggleTruthState();
+
+            if (result.success) {
+                const stateText = result.newState === 'truth' ? '真话模式' : '假话模式';
+                const icon = result.newState === 'truth' ? '✅' : '🤥';
+
+                vscode.window.showInformationMessage(
+                    `${icon} 已切换到${stateText}` +
+                    (result.affectedComments > 0 ? ` (影响了 ${result.affectedComments} 个注释)` : '')
+                );
+            } else {
+                vscode.window.showErrorMessage(`切换失败: ${result.errorMessage}`);
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`切换状态时发生错误: ${error}`);
+        }
+    }
+
+    /**
+     * 清除当前文件的撒谎历史记录
+     */
+    private async clearCurrentFileHistory(): Promise<void> {
+        try {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showErrorMessage('没有活动的编辑器');
+                return;
+            }
+
+            const documentUri = editor.document.uri.toString();
+
+            // 获取当前文件的历史记录数量
+            const records = this.restoreManager.historyManager.getRecordsForFile(documentUri);
+
+            if (records.length === 0) {
+                vscode.window.showInformationMessage('当前文件没有撒谎历史记录');
+                return;
+            }
+
+            const confirm = await vscode.window.showWarningMessage(
+                `确定要永久清除当前文件的 ${records.length} 条撒谎历史记录吗？此操作不可撤销！`,
+                '确定', '取消'
+            );
+
+            if (confirm === '确定') {
+                const result = this.restoreManager.historyManager.clearRecordsForFile(documentUri);
+
+                if (result.success) {
+                    // 更新toggle状态
+                    this.toggleManager.refreshDocumentState(documentUri);
+
+                    vscode.window.showInformationMessage(
+                        `已永久清除当前文件的 ${result.clearedCount} 条撒谎历史记录 🗑️`
+                    );
+                } else {
+                    vscode.window.showErrorMessage('清除历史记录失败');
+                }
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`清除历史记录时发生错误: ${error}`);
         }
     }
 }

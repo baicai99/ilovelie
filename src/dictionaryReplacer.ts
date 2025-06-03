@@ -3,6 +3,7 @@ import { HistoryRecord, SingleReplaceResult } from './types';
 import { CommentDetector } from './commentDetector';
 import { CommentScanner } from './commentScanner';
 import { HistoryManager } from './historyManager';
+import { ToggleManager } from './toggleManager';
 import { createLiesDictionary, getRandomLie, findMatchingLie } from './liesDictionary';
 
 /**
@@ -13,17 +14,19 @@ export class DictionaryReplacer {
     private commentDetector: CommentDetector;
     private commentScanner: CommentScanner;
     private historyManager: HistoryManager;
+    private toggleManager?: ToggleManager;
 
     // 撒谎字典：关键词 -> 撒谎内容
     private liesDictionary: Map<string, string[]>;
 
-    constructor(commentDetector: CommentDetector, historyManager: HistoryManager) {
+    constructor(commentDetector: CommentDetector, historyManager: HistoryManager, toggleManager?: ToggleManager) {
         this.commentDetector = commentDetector;
         this.commentScanner = new CommentScanner();
         this.historyManager = historyManager;
+        this.toggleManager = toggleManager;
         // 初始化字典
         this.liesDictionary = createLiesDictionary();
-    }    /**
+    }/**
      * 字典替换注释功能
      * 检测注释中的关键词并进行替换，如果没有关键词则随机替换
      */
@@ -83,9 +86,9 @@ export class DictionaryReplacer {
                     replacedCount++;
                 }
             }
-        });
-
-        if (success && replacedCount > 0) {
+        }); if (success && replacedCount > 0) {
+            // 通知toggle manager状态已更新
+            this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
             vscode.window.showInformationMessage(
                 `字典替换完成！共替换了 ${replacedCount} 个注释。`
             );
@@ -295,9 +298,9 @@ export class DictionaryReplacer {
                     replacedCount++;
                 }
             });
-        });
-
-        if (success && replacedCount > 0) {
+        }); if (success && replacedCount > 0) {
+            // 通知toggle manager状态已更新
+            this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
             vscode.window.showInformationMessage(
                 `选择性字典替换完成！共替换了 ${replacedCount} 个注释。`
             );
@@ -374,10 +377,11 @@ export class DictionaryReplacer {
 
     /**
      * 执行智能字典替换
-     */
-    private async executeSmartDictionaryReplace(comments: any[]): Promise<void> {
+     */    private async executeSmartDictionaryReplace(comments: any[]): Promise<void> {
         const editor = vscode.window.activeTextEditor;
-        if (!editor) return;
+        if (!editor) {
+            return;
+        }
 
         let replacedCount = 0;
         const results: SingleReplaceResult[] = [];
@@ -385,9 +389,7 @@ export class DictionaryReplacer {
         // 开始编辑操作
         const success = await editor.edit(editBuilder => {
             for (const comment of comments) {
-                const lie = findMatchingLie(comment.cleanText, this.liesDictionary);
-
-                if (lie) {
+                const lie = findMatchingLie(comment.cleanText, this.liesDictionary); if (lie) {
                     // 构建新的注释文本，保持原有格式
                     let newCommentText = '';
 
@@ -435,9 +437,9 @@ export class DictionaryReplacer {
                     replacedCount++;
                 }
             }
-        });
-
-        if (success) {
+        }); if (success) {
+            // 通知toggle manager状态已更新
+            this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
             vscode.window.showInformationMessage(
                 `字典替换完成！成功替换了 ${replacedCount} 条注释`
             );
@@ -448,10 +450,11 @@ export class DictionaryReplacer {
 
     /**
      * 随机替换所有注释
-     */
-    private async randomReplaceAllComments(scanResult: any): Promise<void> {
+     */    private async randomReplaceAllComments(scanResult: any): Promise<void> {
         const editor = vscode.window.activeTextEditor;
-        if (!editor) return;
+        if (!editor) {
+            return;
+        }
 
         let replacedCount = 0; const success = await editor.edit(editBuilder => {
             for (const comment of scanResult.comments) {
@@ -495,9 +498,9 @@ export class DictionaryReplacer {
                 this.historyManager.addRecord(record);
                 replacedCount++;
             }
-        });
-
-        if (success) {
+        }); if (success) {
+            // 通知toggle manager状态已更新
+            this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
             vscode.window.showInformationMessage(
                 `随机替换完成！成功替换了 ${replacedCount} 条注释`
             );
@@ -521,19 +524,17 @@ export class DictionaryReplacer {
             placeHolder: '选择要进行随机替换的注释',
             canPickMany: true,
             matchOnDescription: true
-        });
-
-        if (selectedItems && selectedItems.length > 0) {
+        }); if (selectedItems && selectedItems.length > 0) {
             const editor = vscode.window.activeTextEditor;
-            if (!editor) return;
+            if (!editor) {
+                return;
+            }
 
             let replacedCount = 0;
 
             const success = await editor.edit(editBuilder => {
                 for (const item of selectedItems) {
-                    const randomLie = getRandomLie();
-
-                    // 构建新的注释文本
+                    const randomLie = getRandomLie();                    // 构建新的注释文本
                     let newCommentText = '';
                     const comment = item.comment;
 
@@ -572,9 +573,9 @@ export class DictionaryReplacer {
                     this.historyManager.addRecord(record);
                     replacedCount++;
                 }
-            });
-
-            if (success) {
+            }); if (success) {
+                // 通知toggle manager状态已更新
+                this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
                 vscode.window.showInformationMessage(
                     `手动替换完成！成功替换了 ${replacedCount} 条注释`
                 );

@@ -4,6 +4,44 @@
  */
 
 /**
+ * 真话假话切换状态枚举
+ */
+export enum TruthToggleState {
+    /** 显示真话（原始注释） */
+    TRUTH = 'truth',
+    /** 显示假话（替换后的注释） */
+    LIE = 'lie'
+}
+
+/**
+ * 切换状态信息接口
+ */
+export interface ToggleStateInfo {
+    /** 当前状态 */
+    currentState: TruthToggleState;
+    /** 上次切换时间 */
+    lastToggleTime: number;
+    /** 文档URI */
+    documentUri: string;
+    /** 是否已经应用了撒谎 */
+    hasLies: boolean;
+}
+
+/**
+ * 切换操作结果接口
+ */
+export interface ToggleResult {
+    /** 操作是否成功 */
+    success: boolean;
+    /** 切换后的状态 */
+    newState: TruthToggleState;
+    /** 影响的注释数量 */
+    affectedComments: number;
+    /** 错误信息（如果有） */
+    errorMessage?: string;
+}
+
+/**
  * 历史记录接口
  */
 export interface HistoryRecord {
