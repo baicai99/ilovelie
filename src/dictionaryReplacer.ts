@@ -23,9 +23,7 @@ export class DictionaryReplacer {
         this.historyManager = historyManager;
         // 初始化字典
         this.liesDictionary = createLiesDictionary();
-    }
-
-    /**
+    }    /**
      * 字典替换注释功能
      * 检测注释中的关键词并进行替换，如果没有关键词则随机替换
      */
@@ -36,34 +34,31 @@ export class DictionaryReplacer {
             return;
         }
 
-        // 检测当前文件中的所有注释
-        const comments = this.commentDetector.detectComments(editor.document);
+        // 使用CommentScanner检测当前文件中的所有注释
+        const scanResult = await this.commentScanner.scanActiveDocument();
 
-        if (comments.length === 0) {
+        if (!scanResult.success || scanResult.comments.length === 0) {
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
         } let replacedCount = 0;
-        const results: SingleReplaceResult[] = [];
-
-        // 开始编辑操作
+        const results: SingleReplaceResult[] = [];        // 开始编辑操作
         const success = await editor.edit(editBuilder => {
-            for (const comment of comments) {
-                const lieText = this.generateLieForComment(comment.text);
+            for (const comment of scanResult.comments) {
+                const lieText = this.generateLieForComment(comment.cleanText);
 
-                if (lieText) {                    // 创建替换范围
+                if (lieText) {
+                    // 创建替换范围
                     const range = new vscode.Range(
                         new vscode.Position(comment.range.start.line, comment.range.start.character),
                         new vscode.Position(comment.range.end.line, comment.range.end.character)
                     );
 
                     // 保持注释格式，只替换内容
-                    const formattedLie = this.formatCommentWithLie(comment.text, lieText, comment.type);
-
-                    editBuilder.replace(range, formattedLie);                    // 记录历史
+                    const formattedLie = this.formatCommentWithLie(comment.content, lieText, this.getCommentTypeFromFormat(comment.format)); editBuilder.replace(range, formattedLie);// 记录历史
                     const historyRecord: HistoryRecord = {
                         id: this.generateId(),
                         filePath: editor.document.uri.fsPath,
-                        originalText: comment.text,
+                        originalText: comment.content,
                         newText: formattedLie,
                         timestamp: Date.now(),
                         type: 'dictionary-replace',
@@ -80,7 +75,7 @@ export class DictionaryReplacer {
                     this.historyManager.addRecord(historyRecord);
                     results.push({
                         success: true,
-                        originalText: comment.text,
+                        originalText: comment.content,
                         newText: formattedLie,
                         lineNumber: comment.range.start.line + 1
                     });
@@ -128,8 +123,8 @@ export class DictionaryReplacer {
             .replace(/\*+\/$/, '')  // 移除*/ 结尾
             .replace(/^\/\/+/, '')  // 移除 // 开头
             .replace(/^\s*\*+/gm, '') // 移除每行开头的 * (全局多行模式)
-            .replace(/<!--/, '')    // 移除 HTML 注释开头
-            .replace(/-->/, '')     // 移除 HTML 注释结尾
+            .replace(/<!--/, '')    // 秘移除 HTML 注释开头
+            .replace(/-->/, '')     // 秘移除 HTML 注释结尾
             .replace(/^#+/, '')     // 移除 # 开头（markdown等）
             .replace(/\n/g, ' ')    // 将换行符替换为空格
             .replace(/\s+/g, ' ')   // 将多个空格合并为一个
@@ -203,31 +198,31 @@ export class DictionaryReplacer {
             return;
         }
 
-        // 检测当前文件中的所有注释
-        const comments = this.commentDetector.detectComments(editor.document);
+        // 使用CommentScanner扫描当前文件中的所有注释
+        const scanResult = await this.commentScanner.scanDocument(editor.document);
 
-        console.log('检测到的注释数量:', comments.length);
+        console.log('检测到的注释数量:', scanResult.comments.length);
         console.log('字典大小:', this.liesDictionary.size);
 
-        if (comments.length === 0) {
+        if (!scanResult.success || scanResult.comments.length === 0) {
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
         }// 为每个注释生成预览信息
         const commentItems: vscode.QuickPickItem[] = [];
-        const commentDataArray: { comment: any, lieText: string }[] = []; for (let i = 0; i < comments.length; i++) {
-            const comment = comments[i];
-            const lieText = this.generateLieForComment(comment.text);
+        const commentDataArray: { comment: any, lieText: string }[] = []; for (let i = 0; i < scanResult.comments.length; i++) {
+            const comment = scanResult.comments[i];
+            const lieText = this.generateLieForComment(comment.content);
 
-            console.log(`注释${i + 1}: "${comment.text}" -> "${lieText}"`);
+            console.log(`注释${i + 1}: "${comment.content}" -> "${lieText}"`);
 
             if (lieText) {
-                const originalText = this.extractCommentContent(comment.text);
+                const originalText = this.extractCommentContent(comment.content);
                 const lineNumber = comment.range.start.line + 1;
 
                 commentItems.push({
                     label: `第${lineNumber}行: ${originalText}`,
                     description: `→ ${lieText}`,
-                    detail: `${comment.type} 注释`,
+                    detail: `${this.getCommentTypeFromFormat(comment.format)} 注释`,
                     picked: false
                 });
 
@@ -267,16 +262,14 @@ export class DictionaryReplacer {
                     const range = new vscode.Range(
                         new vscode.Position(comment.range.start.line, comment.range.start.character),
                         new vscode.Position(comment.range.end.line, comment.range.end.character)
-                    );
-
-                    // 保持注释格式，只替换内容
-                    const formattedLie = this.formatCommentWithLie(comment.text, lieText, comment.type);
+                    );                    // 保持注释格式，只替换内容
+                    const formattedLie = this.formatCommentWithLie(comment.content, lieText, comment.type);
 
                     editBuilder.replace(range, formattedLie);                    // 记录历史
                     const historyRecord: HistoryRecord = {
                         id: this.generateId(),
                         filePath: editor.document.uri.fsPath,
-                        originalText: comment.text,
+                        originalText: comment.content,
                         newText: formattedLie,
                         timestamp: Date.now(),
                         type: 'dictionary-replace',
@@ -294,7 +287,7 @@ export class DictionaryReplacer {
 
                     results.push({
                         success: true,
-                        originalText: comment.text,
+                        originalText: comment.content,
                         newText: formattedLie,
                         lineNumber: comment.range.start.line + 1
                     });
@@ -608,5 +601,25 @@ export class DictionaryReplacer {
             matchOnDescription: true,
             matchOnDetail: true
         });
+    }
+
+    /**
+     * 从注释格式获取注释类型
+     * @param format 注释格式
+     * @returns 注释类型
+     */
+    private getCommentTypeFromFormat(format: any): string {
+        switch (format) {
+            case 'single-line-slash':
+            case 'single-line-hash':
+                return 'line';
+            case 'jsdoc-comment':
+                return 'documentation';
+            case 'multi-line-star':
+            case 'html-comment':
+                return 'block';
+            default:
+                return 'line';
+        }
     }
 }

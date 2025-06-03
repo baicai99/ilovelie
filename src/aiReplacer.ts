@@ -5,6 +5,7 @@
 import * as vscode from 'vscode';
 import OpenAI from 'openai';
 import { CommentDetector } from './commentDetector';
+import { CommentScanner, ScannedComment, ScanResult } from './commentScanner';
 import { HistoryManager } from './historyManager';
 import { HistoryRecord } from './types';
 
@@ -18,12 +19,14 @@ export interface AIReplaceResult {
 
 export class AIReplacer {
     private commentDetector: CommentDetector;
+    private commentScanner: CommentScanner;
     private historyManager: HistoryManager;
     private openai: OpenAI | null = null;
     private isConfigured = false;
 
     constructor(commentDetector: CommentDetector, historyManager: HistoryManager) {
         this.commentDetector = commentDetector;
+        this.commentScanner = new CommentScanner();
         this.historyManager = historyManager;
         this.initializeOpenAI();
     }
@@ -395,8 +398,8 @@ export class AIReplacer {
             .replace(/^\/\/+\s*/, '')     // 移除开头的 //
             .replace(/^\/\*+\s*/, '')     // 移除开头的 /*
             .replace(/\s*\*+\/$/, '')     // 移除结尾的 */
-            .replace(/^<!--\s*/, '')      // 移除开头的 <!--
-            .replace(/\s*-->$/, '')       // 移除结尾的 -->
+            .replace(/^<!--\s*/, '')      // 秘除开头的 <!--
+            .replace(/\s*-->$/, '')       // 秘除结尾的 -->
             .replace(/^#+\s*/, '')        // 移除开头的 #
             // 移除中间可能出现的注释符号
             .replace(/\/\/+/g, '')        // 秼除所有 //
@@ -639,21 +642,20 @@ ${numberedComments}
             return;
         }
 
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
+        const editor = vscode.window.activeTextEditor; if (!editor) {
             vscode.window.showErrorMessage('请先打开一个文件！');
             return;
         }
 
-        // 检测所有注释
-        const comments = this.commentDetector.detectComments(editor.document);
-        if (comments.length === 0) {
+        // 使用CommentScanner检测所有注释
+        const scanResult = await this.scanCommentsWithScanner();
+        if (!scanResult.success || scanResult.comments.length === 0) {
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
         }
 
         const choice = await vscode.window.showWarningMessage(
-            `🤖 发现 ${comments.length} 个注释，AI批量替换将使用优化的批量处理模式，是否继续？`,
+            `🤖 发现 ${scanResult.comments.length} 个注释，AI批量替换将使用优化的批量处理模式，是否继续？`,
             '继续替换',
             '取消'
         );
@@ -674,7 +676,7 @@ ${numberedComments}
                 progress.report({ increment: 10, message: "准备批量处理..." });
 
                 // 提取所有注释文本
-                const commentTexts = comments.map(comment => comment.text);
+                const commentTexts = scanResult.comments.map(comment => comment.cleanText);
 
                 progress.report({ increment: 20, message: "发送批量请求到AI..." });
 
@@ -685,28 +687,28 @@ ${numberedComments}
                     progress.report({ increment: 50, message: "处理AI返回结果..." });
 
                     // 处理结果
-                    for (let i = 0; i < comments.length; i++) {
-                        const comment = comments[i];
+                    for (let i = 0; i < scanResult.comments.length; i++) {
+                        const comment = scanResult.comments[i];
                         const lieContent = lieContents[i];
 
                         if (lieContent) {
                             // 格式化注释
                             const formattedLie = this.commentDetector.replaceCommentContent(
-                                comment.text,
+                                comment.content,
                                 lieContent,
                                 editor.document.languageId
                             );
 
                             results.push({
                                 success: true,
-                                originalText: comment.text,
+                                originalText: comment.content,
                                 newText: formattedLie,
                                 lineNumber: comment.range.start.line + 1
                             });
                         } else {
                             results.push({
                                 success: false,
-                                originalText: comment.text,
+                                originalText: comment.content,
                                 newText: '',
                                 lineNumber: comment.range.start.line + 1,
                                 error: '批量生成结果为空'
@@ -716,33 +718,31 @@ ${numberedComments}
 
                 } catch (batchError: any) {
                     // 批量处理失败，回退到单个处理模式
-                    console.warn('批量AI处理失败，回退到单个处理模式:', batchError.message);
+                    console.warn('批量AI处理失败，回退到单个处理模式:', batchError.message); progress.report({ increment: 0, message: "批量处理失败，使用单个处理模式..." });
 
-                    progress.report({ increment: 0, message: "批量处理失败，使用单个处理模式..." });
-
-                    for (let i = 0; i < comments.length; i++) {
-                        const comment = comments[i];
-                        const progressPercent = Math.round((i / comments.length) * 60); // 剩余60%进度
+                    for (let i = 0; i < scanResult.comments.length; i++) {
+                        const comment = scanResult.comments[i];
+                        const progressPercent = Math.round((i / scanResult.comments.length) * 60); // 剩余60%进度
 
                         progress.report({
-                            increment: i === 0 ? 0 : 60 / comments.length,
-                            message: `单个处理 ${i + 1}/${comments.length} (${progressPercent}%)`
+                            increment: i === 0 ? 0 : 60 / scanResult.comments.length,
+                            message: `单个处理 ${i + 1}/${scanResult.comments.length} (${progressPercent}%)`
                         });
 
                         try {
                             // 生成AI撒谎内容
-                            const lieContent = await this.generateLieContent(comment.text);
+                            const lieContent = await this.generateLieContent(comment.cleanText);
 
                             // 格式化注释
                             const formattedLie = this.commentDetector.replaceCommentContent(
-                                comment.text,
+                                comment.content,
                                 lieContent,
                                 editor.document.languageId
                             );
 
                             results.push({
                                 success: true,
-                                originalText: comment.text,
+                                originalText: comment.content,
                                 newText: formattedLie,
                                 lineNumber: comment.range.start.line + 1
                             });
@@ -750,7 +750,7 @@ ${numberedComments}
                         } catch (error: any) {
                             results.push({
                                 success: false,
-                                originalText: comment.text,
+                                originalText: comment.content,
                                 newText: '',
                                 lineNumber: comment.range.start.line + 1,
                                 error: error.message
@@ -758,19 +758,17 @@ ${numberedComments}
                         }
 
                         // 小延迟避免API限制
-                        if (i < comments.length - 1) {
+                        if (i < scanResult.comments.length - 1) {
                             await new Promise(resolve => setTimeout(resolve, 100));
                         }
                     }
                 }
 
                 progress.report({ increment: 20, message: "应用替换..." });
-            });
-
-            // 应用所有替换
+            });            // 应用所有替换
             const success = await editor.edit(editBuilder => {
-                for (let i = 0; i < comments.length; i++) {
-                    const comment = comments[i];
+                for (let i = 0; i < scanResult.comments.length; i++) {
+                    const comment = scanResult.comments[i];
                     const result = results[i];
 
                     if (result.success) {
@@ -805,14 +803,12 @@ ${numberedComments}
                 }
             });
 
-            const failedCount = results.filter(r => !r.success).length;
-
-            if (success && replacedCount > 0) {
+            const failedCount = results.filter(r => !r.success).length; if (success && replacedCount > 0) {
                 let message = `🎉 AI批量撒谎完成！成功替换了 ${replacedCount} 个注释`;
                 if (failedCount > 0) {
                     message += `，${failedCount} 个失败`;
                 }
-                message += `。使用了${failedCount > 0 && replacedCount < comments.length ? '混合' : '批量'}处理模式。`;
+                message += `。使用了${failedCount > 0 && replacedCount < scanResult.comments.length ? '混合' : '批量'}处理模式。`;
                 vscode.window.showInformationMessage(message);
             } else if (failedCount === results.length) {
                 vscode.window.showErrorMessage('😅 所有注释的AI生成都失败了！请检查网络连接和API配置。');
@@ -831,24 +827,22 @@ ${numberedComments}
     public async aiSelectiveReplaceComments(): Promise<void> {
         if (!(await this.checkConfiguration())) {
             return;
-        }
-
-        const editor = vscode.window.activeTextEditor;
+        } const editor = vscode.window.activeTextEditor;
         if (!editor) {
             vscode.window.showErrorMessage('请先打开一个文件！');
             return;
         }
 
-        // 检测所有注释
-        const comments = this.commentDetector.detectComments(editor.document);
-        if (comments.length === 0) {
+        // 使用CommentScanner检测所有注释
+        const scanResult = await this.scanCommentsWithScanner();
+        if (!scanResult.success || scanResult.comments.length === 0) {
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
         }
 
         // 为每个注释生成预览信息
-        const commentItems: vscode.QuickPickItem[] = comments.map((comment, index) => {
-            const preview = comment.text.replace(/\s+/g, ' ').trim();
+        const commentItems: vscode.QuickPickItem[] = scanResult.comments.map((comment, index) => {
+            const preview = comment.cleanText.replace(/\s+/g, ' ').trim();
             const shortPreview = preview.length > 50 ? preview.substring(0, 47) + '...' : preview;
 
             return {
@@ -882,7 +876,7 @@ ${numberedComments}
         }        // 获取选中的注释索引
         const selectedIndices = selectedItems.map(item => {
             const lineNumber = parseInt(item.label.match(/第 (\d+) 行/)?.[1] || '0') - 1;
-            return comments.findIndex(comment => comment.range.start.line === lineNumber);
+            return scanResult.comments.findIndex(comment => comment.range.start.line === lineNumber);
         }).filter(index => index !== -1);
 
         let replacedCount = 0;
@@ -894,11 +888,9 @@ ${numberedComments}
                 title: "🤖 AI正在为选中注释生成撒谎内容...",
                 cancellable: false
             }, async (progress) => {
-                progress.report({ increment: 10, message: "准备批量处理选中注释..." });
-
-                // 提取选中的注释文本
-                const selectedComments = selectedIndices.map(index => comments[index]);
-                const commentTexts = selectedComments.map(comment => comment.text);
+                progress.report({ increment: 10, message: "准备批量处理选中注释..." });                // 提取选中的注释文本
+                const selectedComments = selectedIndices.map(index => scanResult.comments[index]);
+                const commentTexts = selectedComments.map(comment => comment.cleanText);
 
                 progress.report({ increment: 20, message: "发送批量请求到AI..." });
 
@@ -911,26 +903,24 @@ ${numberedComments}
                     // 处理结果
                     for (let i = 0; i < selectedComments.length; i++) {
                         const comment = selectedComments[i];
-                        const lieContent = lieContents[i];
-
-                        if (lieContent) {
+                        const lieContent = lieContents[i]; if (lieContent) {
                             // 格式化注释
                             const formattedLie = this.commentDetector.replaceCommentContent(
-                                comment.text,
+                                comment.content,
                                 lieContent,
                                 editor.document.languageId
                             );
 
                             results.push({
                                 success: true,
-                                originalText: comment.text,
+                                originalText: comment.content,
                                 newText: formattedLie,
                                 lineNumber: comment.range.start.line + 1
                             });
                         } else {
                             results.push({
                                 success: false,
-                                originalText: comment.text,
+                                originalText: comment.content,
                                 newText: '',
                                 lineNumber: comment.range.start.line + 1,
                                 error: '批量生成结果为空'
@@ -942,11 +932,9 @@ ${numberedComments}
                     // 批量处理失败，回退到单个处理模式
                     console.warn('批量AI处理失败，回退到单个处理模式:', batchError.message);
 
-                    progress.report({ increment: 0, message: "批量处理失败，使用单个处理模式..." });
-
-                    for (let i = 0; i < selectedIndices.length; i++) {
+                    progress.report({ increment: 0, message: "批量处理失败，使用单个处理模式..." }); for (let i = 0; i < selectedIndices.length; i++) {
                         const commentIndex = selectedIndices[i];
-                        const comment = comments[commentIndex];
+                        const comment = scanResult.comments[commentIndex];
                         const progressPercent = Math.round((i / selectedIndices.length) * 60); // 剩余60%进度
 
                         progress.report({
@@ -956,18 +944,16 @@ ${numberedComments}
 
                         try {
                             // 生成AI撒谎内容
-                            const lieContent = await this.generateLieContent(comment.text);
-
-                            // 格式化注释
+                            const lieContent = await this.generateLieContent(comment.cleanText);                            // 格式化注释
                             const formattedLie = this.commentDetector.replaceCommentContent(
-                                comment.text,
+                                comment.content,
                                 lieContent,
                                 editor.document.languageId
                             );
 
                             results.push({
                                 success: true,
-                                originalText: comment.text,
+                                originalText: comment.content,
                                 newText: formattedLie,
                                 lineNumber: comment.range.start.line + 1
                             });
@@ -975,7 +961,7 @@ ${numberedComments}
                         } catch (error: any) {
                             results.push({
                                 success: false,
-                                originalText: comment.text,
+                                originalText: comment.content,
                                 newText: '',
                                 lineNumber: comment.range.start.line + 1,
                                 error: error.message
@@ -990,13 +976,11 @@ ${numberedComments}
                 }
 
                 progress.report({ increment: 20, message: "应用替换..." });
-            });
-
-            // 应用替换
+            });            // 应用替换
             const success = await editor.edit(editBuilder => {
                 for (let i = 0; i < selectedIndices.length; i++) {
                     const commentIndex = selectedIndices[i];
-                    const comment = comments[commentIndex];
+                    const comment = scanResult.comments[commentIndex];
                     const result = results[i];
 
                     if (result.success) {
@@ -1061,5 +1045,55 @@ ${numberedComments}
      */
     private generateId(): string {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    /**
+     * 使用CommentScanner扫描当前活动文档中的所有注释
+     * @returns 扫描结果
+     */
+    private async scanCommentsWithScanner(): Promise<ScanResult> {
+        return await this.commentScanner.scanActiveDocument();
+    }
+
+    /**
+     * 使用CommentScanner扫描指定文档中的所有注释
+     * @param document 要扫描的文档
+     * @returns 扫描结果
+     */
+    private async scanDocumentCommentsWithScanner(document: vscode.TextDocument): Promise<ScanResult> {
+        return await this.commentScanner.scanDocument(document);
+    }
+
+    /**
+     * 将ScannedComment转换为CommentDetector需要的格式
+     * @param scannedComment 扫描到的注释
+     * @returns 转换后的注释信息
+     */
+    private convertScannedCommentToDetectedComment(scannedComment: ScannedComment) {
+        return {
+            range: scannedComment.range,
+            type: this.getCommentTypeFromFormat(scannedComment.format),
+            content: scannedComment.content
+        };
+    }
+
+    /**
+     * 从注释格式获取注释类型
+     * @param format 注释格式
+     * @returns 注释类型
+     */
+    private getCommentTypeFromFormat(format: any): string {
+        switch (format) {
+            case 'single-line-slash':
+            case 'single-line-hash':
+                return 'line';
+            case 'jsdoc-comment':
+                return 'documentation';
+            case 'multi-line-star':
+            case 'html-comment':
+                return 'block';
+            default:
+                return 'line';
+        }
     }
 }

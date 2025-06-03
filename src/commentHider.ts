@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { CommentDetector } from './commentDetector';
+import { CommentScanner, ScannedComment, ScanResult } from './commentScanner';
 import { HistoryManager } from './historyManager';
 import { HistoryRecord } from './types';
 
@@ -9,11 +10,13 @@ import { HistoryRecord } from './types';
  */
 export class CommentHider {
     private commentDetector: CommentDetector;
+    private commentScanner: CommentScanner;
     private historyManager: HistoryManager;
     private hiddenCommentsMap: Map<string, Map<number, HistoryRecord>>;
 
     constructor(commentDetector: CommentDetector, historyManager: HistoryManager) {
         this.commentDetector = commentDetector;
+        this.commentScanner = new CommentScanner();
         this.historyManager = historyManager;
         this.hiddenCommentsMap = new Map();
     }
@@ -38,16 +41,14 @@ export class CommentHider {
             // 如果没有隐藏的注释，则隐藏它们
             await this.hideComments(editor, filePath);
         }
-    }
-
-    /**
+    }    /**
      * 隐藏当前文件的所有注释
      */
     private async hideComments(editor: vscode.TextEditor, filePath: string): Promise<void> {
-        // 检测当前文件中的所有注释
-        const comments = this.commentDetector.detectComments(editor.document);
+        // 使用CommentScanner扫描当前文件中的所有注释
+        const scanResult = await this.commentScanner.scanDocument(editor.document);
 
-        if (comments.length === 0) {
+        if (!scanResult.success || scanResult.comments.length === 0) {
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
         }
@@ -56,7 +57,7 @@ export class CommentHider {
         let hiddenCount = 0;
 
         // 从后往前处理，避免行号变化的问题
-        const sortedComments = comments.sort((a, b) => b.range.start.line - a.range.start.line);
+        const sortedComments = scanResult.comments.sort((a, b) => b.range.start.line - a.range.start.line);
 
         const success = await editor.edit(editBuilder => {
             for (const comment of sortedComments) {
@@ -71,7 +72,7 @@ export class CommentHider {
                 const hiddenRecord: HistoryRecord = {
                     id: this.generateId(),
                     filePath: filePath,
-                    originalText: comment.text,
+                    originalText: comment.content,
                     newText: '',
                     timestamp: Date.now(),
                     type: 'hide-comment',
