@@ -20,7 +20,7 @@ export class CommentDetector {
             case 'csharp':
             case 'cpp':
             case 'c':
-                return this.isSlashComment(trimmedText) || this.isMultiLineComment(trimmedText);
+                return this.isSlashComment(trimmedText) || this.isJSDocComment(trimmedText) || this.isMultiLineComment(trimmedText);
 
             case 'python':
             case 'ruby':
@@ -34,18 +34,15 @@ export class CommentDetector {
             case 'css':
             case 'scss':
             case 'less':
-                return this.isMultiLineComment(trimmedText);
-
-            default:
+                return this.isMultiLineComment(trimmedText); default:
                 // 默认检测常见的注释格式
                 return this.isSlashComment(trimmedText) ||
                     this.isHashComment(trimmedText) ||
+                    this.isJSDocComment(trimmedText) ||
                     this.isMultiLineComment(trimmedText) ||
                     this.isHtmlComment(trimmedText);
         }
-    }
-
-    /**
+    }    /**
      * 获取注释格式类型
      */
     public getCommentFormat(text: string, languageId: string): CommentFormat {
@@ -57,6 +54,10 @@ export class CommentDetector {
 
         if (this.isHashComment(trimmed)) {
             return 'single-line-hash';
+        }
+
+        if (this.isJSDocComment(trimmed)) {
+            return 'jsdoc-comment';
         }
 
         if (this.isMultiLineComment(trimmed)) {
@@ -80,11 +81,14 @@ export class CommentDetector {
         // JavaScript/TypeScript/Java/C#/C++ 单行注释
         if (this.isSlashComment(trimmed)) {
             return originalComment.replace(/\/\/\s*.*/, `// ${newContent}`);
-        }
-
-        // Python/Ruby/Shell 注释
+        }        // Python/Ruby/Shell 注释
         if (this.isHashComment(trimmed)) {
             return originalComment.replace(/#\s*.*/, `# ${newContent}`);
+        }
+
+        // JSDoc 注释 /** */
+        if (this.isJSDocComment(trimmed)) {
+            return originalComment.replace(/\/\*\*[\s\S]*?\*\//, `/** ${newContent} */`);
         }
 
         // 多行注释 /* */
@@ -107,11 +111,14 @@ export class CommentDetector {
         const trimmed = text.trim();        // 处理 // 注释
         if (this.isSlashComment(trimmed)) {
             return trimmed.replace(/^\/\/\s*/, '').trim();
-        }
-
-        // 处理 # 注释
+        }        // 处理 # 注释
         if (this.isHashComment(trimmed)) {
             return trimmed.replace(/^#\s*/, '').trim();
+        }
+
+        // 处理 /** */ JSDoc注释
+        if (this.isJSDocComment(trimmed)) {
+            return trimmed.replace(/^\/\*\*\s*/, '').replace(/\s*\*\/$/, '').trim();
         }
 
         // 处理 /* */ 注释
@@ -139,13 +146,18 @@ export class CommentDetector {
      */
     private isHashComment(text: string): boolean {
         return text.startsWith('#');
-    }
-
-    /**
+    }    /**
      * 检测是否为多行注释
      */
     private isMultiLineComment(text: string): boolean {
-        return text.startsWith('/*') && text.endsWith('*/');
+        return text.startsWith('/*') && text.endsWith('*/') && !text.startsWith('/**');
+    }
+
+    /**
+     * 检测是否为JSDoc注释
+     */
+    private isJSDocComment(text: string): boolean {
+        return text.startsWith('/**') && text.endsWith('*/');
     }
 
     /**
@@ -153,7 +165,7 @@ export class CommentDetector {
      */
     private isHtmlComment(text: string): boolean {
         return text.startsWith('<!--') && text.endsWith('-->');
-    }    /**
+    }/**
      * 检测文档中的所有注释
      */
     public detectComments(document: vscode.TextDocument): CommentInfo[] {

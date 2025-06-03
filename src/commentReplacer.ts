@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { HistoryRecord, ReplaceResult } from './types';
 import { CommentDetector } from './commentDetector';
+import { CommentScanner } from './commentScanner';
 import { HistoryManager } from './historyManager';
 
 /**
@@ -9,10 +10,12 @@ import { HistoryManager } from './historyManager';
  */
 export class CommentReplacer {
     private commentDetector: CommentDetector;
+    private commentScanner: CommentScanner;
     private historyManager: HistoryManager;
 
     constructor(commentDetector: CommentDetector, historyManager: HistoryManager) {
         this.commentDetector = commentDetector;
+        this.commentScanner = new CommentScanner();
         this.historyManager = historyManager;
     }
 
@@ -165,6 +168,107 @@ export class CommentReplacer {
             }
         } else {
             vscode.window.showErrorMessage(`替换失败：${result.errorMessage || '未知错误'}`);
+        }
+    }
+
+    /**
+     * 使用扫描器进行智能注释替换
+     */
+    public async smartReplaceComment(): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('请先打开一个文件！');
+            return;
+        }
+
+        try {
+            // 使用CommentScanner扫描所有注释
+            const scanResult = await this.commentScanner.scanActiveDocument();
+
+            if (!scanResult.success) {
+                vscode.window.showErrorMessage(`扫描注释失败: ${scanResult.errorMessage}`);
+                return;
+            }
+
+            if (scanResult.totalComments === 0) {
+                vscode.window.showInformationMessage('当前文档中没有找到注释');
+                return;
+            }
+
+            // 创建快速选择项
+            const quickPickItems = scanResult.comments.map((comment, index) => ({
+                label: `第 ${comment.lineNumber + 1} 行`,
+                description: comment.cleanText.substring(0, 50) + (comment.cleanText.length > 50 ? '...' : ''),
+                detail: `格式: ${comment.format} | 原文: ${comment.cleanText}`,
+                comment: comment
+            }));
+
+            const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
+                placeHolder: `选择要替换的注释 (共找到 ${scanResult.totalComments} 条注释)`,
+                matchOnDescription: true,
+                matchOnDetail: true
+            });
+
+            if (!selectedItem) {
+                return;
+            }
+
+            const newComment = await vscode.window.showInputBox({
+                prompt: '请输入新的撒谎注释内容',
+                placeHolder: '例如：这个函数用来播放音乐',
+                value: selectedItem.comment.cleanText
+            });
+
+            if (!newComment) {
+                return;
+            }
+
+            // 构建新的注释文本，保持原有格式
+            let newCommentText = '';
+            const originalComment = selectedItem.comment;
+
+            switch (originalComment.format) {
+                case 'single-line-slash':
+                    newCommentText = `${originalComment.indentation}// ${newComment}`;
+                    break;
+                case 'single-line-hash':
+                    newCommentText = `${originalComment.indentation}# ${newComment}`;
+                    break;
+                case 'multi-line-star':
+                    if (originalComment.multiLinePosition === 'single') {
+                        newCommentText = `${originalComment.indentation}/* ${newComment} */`;
+                    } else {
+                        // 对于多行注释的各个部分，保持原有结构
+                        newCommentText = originalComment.content.replace(originalComment.cleanText, newComment);
+                    }
+                    break;
+                case 'html-comment':
+                    newCommentText = `${originalComment.indentation}<!-- ${newComment} -->`;
+                    break;
+                default:
+                    newCommentText = `${originalComment.indentation}// ${newComment}`;
+            }
+
+            // 执行替换
+            await editor.edit(editBuilder => {
+                editBuilder.replace(originalComment.range, newCommentText);
+            });            // 记录历史
+            const record = this.historyManager.createHistoryRecord(
+                editor.document.uri.fsPath,
+                originalComment.content,
+                newCommentText,
+                originalComment.range,
+                'manual-replace'
+            );
+
+            await this.historyManager.addRecord(record);
+
+            vscode.window.showInformationMessage(
+                `注释替换成功！第 ${originalComment.lineNumber + 1} 行`
+            );
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`智能替换注释时发生错误: ${error}`);
         }
     }
 }

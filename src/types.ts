@@ -45,6 +45,7 @@ export type CommentFormat =
     | 'single-line-slash' // //
     | 'single-line-hash'  // #
     | 'multi-line-star'   // /* */
+    | 'jsdoc-comment'     // /** */
     | 'html-comment';     // <!-- -->
 
 /**
@@ -85,5 +86,47 @@ export interface RestoreResult {
     success: boolean;
     restoredCount: number;
     restoredRecords?: HistoryRecord[]; // 实际成功还原的记录列表
+    errorMessage?: string;
+}
+
+/**
+ * 扫描到的注释项接口
+ */
+export interface ScannedComment {
+    /** 注释原始内容 */
+    content: string;
+    /** 注释在文档中的范围 */
+    range: any; // vscode.Range
+    /** 注释所在行号（从0开始） */
+    lineNumber: number;
+    /** 注释类型（单行、多行等） */
+    format: CommentFormat;
+    /** 注释前的缩进 */
+    indentation: string;
+    /** 是否是多行注释的一部分 */
+    isMultiLinePart: boolean;
+    /** 如果是多行注释，标记是开始、中间还是结束 */
+    multiLinePosition?: 'start' | 'middle' | 'end' | 'single';
+    /** 纯净的注释文本（去除注释符号） */
+    cleanText: string;
+}
+
+/**
+ * 扫描结果接口
+ */
+export interface ScanResult {
+    /** 扫描是否成功 */
+    success: boolean;
+    /** 找到的注释总数 */
+    totalComments: number;
+    /** 扫描到的所有注释 */
+    comments: ScannedComment[];
+    /** 扫描的文档信息 */
+    documentInfo: {
+        fileName: string;
+        languageId: string;
+        totalLines: number;
+    };
+    /** 错误信息（如果有） */
     errorMessage?: string;
 }
