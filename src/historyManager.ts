@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { HistoryRecord } from './types';
+import { FakeFileManager } from './fakeFileManager';
 
 /**
  * 历史记录管理器
@@ -8,6 +9,11 @@ import { HistoryRecord } from './types';
 export class HistoryManager {
     private changeHistory: HistoryRecord[] = [];
     private extensionContext: vscode.ExtensionContext | null = null;
+    private fakeFileManager: FakeFileManager;
+
+    constructor() {
+        this.fakeFileManager = new FakeFileManager();
+    }
 
     /**
      * 初始化历史管理器
@@ -42,14 +48,21 @@ export class HistoryManager {
             startPosition: { line: range.start.line, character: range.start.character },
             endPosition: { line: range.end.line, character: range.end.character }
         };
-    }
-
-    /**
+    }    /**
      * 添加历史记录
      */
-    public addRecord(record: HistoryRecord): void {
+    public async addRecord(record: HistoryRecord): Promise<void> {
         this.changeHistory.push(record);
         this.saveHistory();
+
+        // 同步到 .fake 文件
+        try {
+            await this.fakeFileManager.recordHistoryChange(record);
+            console.log(`[HistoryManager] 已同步历史记录到 .fake 文件: ${record.id}`);
+        } catch (error) {
+            console.error(`[HistoryManager] 同步到 .fake 文件失败:`, error);
+            // 即使同步失败，也不影响历史记录的添加
+        }
     }
 
     /**
@@ -96,7 +109,7 @@ export class HistoryManager {
      * 永久清除指定文件的所有撒谎记录
      * 这将完全删除历史记录，无法恢复
      */
-    public clearRecordsForFile(documentUri: string): { success: boolean; clearedCount: number } {
+    public async clearRecordsForFile(documentUri: string): Promise<{ success: boolean; clearedCount: number }> {
         const recordsToRemove = this.getRecordsForFile(documentUri);
         const count = recordsToRemove.length;
 
@@ -107,6 +120,15 @@ export class HistoryManager {
         );
 
         this.saveHistory();
+
+        // 同步清理 .fake 文件
+        try {
+            const filePath = documentUri.startsWith('file://') ? vscode.Uri.parse(documentUri).fsPath : documentUri;
+            await this.fakeFileManager.cleanupFileRecord(filePath);
+            console.log(`[HistoryManager] 已同步清理 .fake 文件记录: ${filePath}`);
+        } catch (error) {
+            console.error(`[HistoryManager] 清理 .fake 文件失败:`, error);
+        }
 
         console.log(`[DEBUG] 永久清除文件 ${documentUri} 的 ${count} 条记录`);
 
@@ -438,6 +460,13 @@ export class HistoryManager {
                 errorMessage: `恢复失败: ${error}`
             };
         }
+    }
+
+    /**
+     * 获取 FakeFileManager 实例
+     */
+    public getFakeFileManager(): FakeFileManager {
+        return this.fakeFileManager;
     }
 
     /**

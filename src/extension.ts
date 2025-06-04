@@ -46,7 +46,6 @@ export function activate(context: vscode.ExtensionContext) {
 	dictionaryReplacer = new DictionaryReplacer(commentDetector, historyManager, toggleManager);
 	commentHider = new CommentHider(commentDetector, historyManager);
 	aiReplacer = new AIReplacer(commentDetector, historyManager, toggleManager);
-
 	// 初始化命令注册器并注册所有命令
 	commandRegistrar = new CommandRegistrar(
 		commentReplacer,
@@ -56,7 +55,8 @@ export function activate(context: vscode.ExtensionContext) {
 		commentHider,
 		aiReplacer,
 		commentScanner,
-		toggleManager
+		toggleManager,
+		historyManager
 	);
 
 	// 注册所有命令

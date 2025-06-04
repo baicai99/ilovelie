@@ -6,16 +6,19 @@ import * as vscode from 'vscode';
 import { TruthToggleState, ToggleStateInfo, ToggleResult, ScannedComment } from './types';
 import { HistoryManager } from './historyManager';
 import { CommentScanner } from './commentScanner';
+import { FakeFileManager } from './fakeFileManager';
 
 export class ToggleManager {
     private historyManager: HistoryManager;
     private commentScanner: CommentScanner;
+    private fakeFileManager: FakeFileManager;
     private documentStates: Map<string, ToggleStateInfo> = new Map();
     private statusBarItem: vscode.StatusBarItem;
 
     constructor(historyManager: HistoryManager, commentScanner: CommentScanner) {
         this.historyManager = historyManager;
         this.commentScanner = commentScanner;
+        this.fakeFileManager = historyManager.getFakeFileManager();
 
         // 创建状态栏项
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
@@ -117,12 +120,20 @@ export class ToggleManager {
                 errorMessage: `切换状态时发生错误: ${error.message || error}`
             };
         }
-    }
-
-    /**
+    }    /**
      * 获取当前文档的状态
      */
     public getCurrentState(documentUri: string): TruthToggleState {
+        // 首先从 .fake 文件获取状态
+        const filePath = documentUri.startsWith('file://') ? vscode.Uri.parse(documentUri).fsPath : documentUri;
+        const fakeFileState = this.fakeFileManager.getFileState(filePath);
+
+        // 如果 .fake 文件有状态记录，优先使用
+        if (fakeFileState !== TruthToggleState.TRUTH || this.fakeFileManager.hasLiesInFile(filePath)) {
+            return fakeFileState;
+        }
+
+        // 回退到内存状态（兼容性）
         const stateInfo = this.documentStates.get(documentUri);
         return stateInfo?.currentState || TruthToggleState.TRUTH;
     }
@@ -132,12 +143,19 @@ export class ToggleManager {
      */
     public getStateInfo(documentUri: string): ToggleStateInfo | undefined {
         return this.documentStates.get(documentUri);
-    }
-
-    /**
+    }    /**
      * 检查文档是否有撒谎记录
      */
     private async hasLiesInDocument(documentUri: string): Promise<boolean> {
+        // 首先检查 .fake 文件
+        const filePath = documentUri.startsWith('file://') ? vscode.Uri.parse(documentUri).fsPath : documentUri;
+        const hasLiesInFake = this.fakeFileManager.hasLiesInFile(filePath);
+
+        if (hasLiesInFake) {
+            return true;
+        }
+
+        // 回退到历史记录检查（兼容性）
         const records = await this.historyManager.getRecordsForFile(documentUri);
         return records.length > 0;
     }
@@ -169,10 +187,8 @@ export class ToggleManager {
                     affectedComments: 0,
                     errorMessage: '当前文档中没有找到注释'
                 };
-            }
-
-            console.log(`[DEBUG] 找到 ${scanResult.totalComments} 条注释，提示用户选择替换方式`);
-            this.updateDocumentState(documentUri, TruthToggleState.TRUTH, false); // 确保状态正确
+            } console.log(`[DEBUG] 找到 ${scanResult.totalComments} 条注释，提示用户选择替换方式`);
+            await this.updateDocumentState(documentUri, TruthToggleState.TRUTH, false); // 确保状态正确
 
             const action = await vscode.window.showWarningMessage(
                 `当前文档有 ${scanResult.totalComments} 条注释，但还没有撒谎记录。请先选择一种替换方式进行撒谎操作。`,
@@ -253,7 +269,7 @@ export class ToggleManager {
                     console.warn(`[DEBUG] 记录 ${record.id} 的当前文本与原始/新文本不匹配，可能已被修改。跳过。`);
                     continue; // 跳过此记录
                 }
-                
+
                 editOperations.push({ range, newText: record.newText, recordId: record.id });
                 processedRecordIds.add(record.id);
 
@@ -272,7 +288,7 @@ export class ToggleManager {
             console.error(`[DEBUG] 范围验证失败:`, validation.errors);
             vscode.window.showErrorMessage(`应用撒谎时范围验证失败: ${validation.errors.join('; ')}`);
             // 这里我们仍旧切换状态，但是affectedComments为0，表示实际替换数量为0
-            this.updateDocumentState(documentUri, TruthToggleState.LIE, hasLies); // 保持hasLies为true
+            await this.updateDocumentState(documentUri, TruthToggleState.LIE, hasLies); // 保持hasLies为true
             return {
                 success: false,
                 newState: TruthToggleState.LIE,
@@ -322,10 +338,8 @@ export class ToggleManager {
                     errorMessage: `编辑操作异常: ${error.message || error}`
                 };
             }
-        }
-
-        // 更新状态
-        this.updateDocumentState(documentUri, TruthToggleState.LIE, true);
+        }        // 更新状态
+        await this.updateDocumentState(documentUri, TruthToggleState.LIE, true);
 
         return {
             success: true,
@@ -349,28 +363,33 @@ export class ToggleManager {
                 affectedComments: 0,
                 errorMessage: restoreResult.errorMessage
             };
-        }
-
-        // 更新状态
-        this.updateDocumentState(documentUri, TruthToggleState.TRUTH, true); // 保持 hasLies 为 true，因为记录仍然存在
+        }        // 更新状态
+        await this.updateDocumentState(documentUri, TruthToggleState.TRUTH, true); // 保持 hasLies 为 true，因为记录仍然存在
 
         return {
             success: true,
             newState: TruthToggleState.TRUTH,
             affectedComments: restoreResult.restoredCount, // 使用 historyManager 返回的实际恢复数量
         };
-    }
-
-    /**
+    }    /**
      * 更新文档状态
      */
-    private updateDocumentState(documentUri: string, newState: TruthToggleState, hasLies: boolean): void {
+    private async updateDocumentState(documentUri: string, newState: TruthToggleState, hasLies: boolean): Promise<void> {
         this.documentStates.set(documentUri, {
             currentState: newState,
             lastToggleTime: Date.now(),
             documentUri: documentUri,
             hasLies: hasLies
         });
+
+        // 同步状态到 .fake 文件
+        try {
+            const filePath = documentUri.startsWith('file://') ? vscode.Uri.parse(documentUri).fsPath : documentUri;
+            await this.fakeFileManager.recordFileStateChange(filePath, newState);
+            console.log(`[ToggleManager] 已同步状态到 .fake 文件: ${filePath} -> ${newState}`);
+        } catch (error) {
+            console.error(`[ToggleManager] 同步状态到 .fake 文件失败:`, error);
+        }
 
         // 更新状态栏
         this.updateStatusBar();
@@ -451,7 +470,9 @@ export class ToggleManager {
      * 销毁资源
      */
     public dispose(): void {
-        this.statusBarItem.dispose();
+        if (this.statusBarItem) {
+            this.statusBarItem.dispose();
+        }
     }
 
     /**
@@ -500,17 +521,15 @@ export class ToggleManager {
             valid: errors.length === 0,
             errors: errors
         };
-    }
-
-    /**
+    }    /**
      * 当用户进行撒谎操作后通知状态变化
      * 这个方法应该在任何替换操作完成后被调用
      */
-    public notifyLiesAdded(documentUri: string): void {
+    public async notifyLiesAdded(documentUri: string): Promise<void> {
         console.log(`[DEBUG] 通知撒谎操作完成: ${documentUri}`);
 
         // 更新文档状态，标记为已有撒谎记录但当前显示真话
-        this.updateDocumentState(documentUri, TruthToggleState.TRUTH, true);
+        await this.updateDocumentState(documentUri, TruthToggleState.TRUTH, true);
 
         // 更新状态栏显示
         this.updateStatusBar();
@@ -527,10 +546,9 @@ export class ToggleManager {
             console.log(`[DEBUG] 文档状态已存在: ${documentUri}`);
             // 已有状态，重新检查撒谎记录状态以确保同步
             const hasLies = await this.hasLiesInDocument(documentUri);
-            const currentState = this.documentStates.get(documentUri);
-            if (currentState && currentState.hasLies !== hasLies) {
+            const currentState = this.documentStates.get(documentUri); if (currentState && currentState.hasLies !== hasLies) {
                 console.log(`[DEBUG] 更新撒谎记录状态: ${currentState.hasLies} -> ${hasLies}`);
-                this.updateDocumentState(documentUri, currentState.currentState, hasLies);
+                await this.updateDocumentState(documentUri, currentState.currentState, hasLies);
             }
             return;
         }
@@ -538,10 +556,8 @@ export class ToggleManager {
         console.log(`[DEBUG] 初始化文档状态: ${documentUri}`);
 
         // 检查是否有历史撒谎记录
-        const hasLies = await this.hasLiesInDocument(documentUri);
-
-        // 设置初始状态 - 总是以真话模式开始
-        this.updateDocumentState(documentUri, TruthToggleState.TRUTH, hasLies);
+        const hasLies = await this.hasLiesInDocument(documentUri);        // 设置初始状态 - 总是以真话模式开始
+        await this.updateDocumentState(documentUri, TruthToggleState.TRUTH, hasLies);
 
         console.log(`[DEBUG] 文档初始状态: 真话模式, 有撒谎记录: ${hasLies}`);
     }
@@ -554,14 +570,12 @@ export class ToggleManager {
         console.log(`[DEBUG] 刷新文档状态: ${documentUri}`);
 
         const hasLies = await this.hasLiesInDocument(documentUri);
-        const currentStateInfo = this.documentStates.get(documentUri);
-
-        if (currentStateInfo) {
+        const currentStateInfo = this.documentStates.get(documentUri); if (currentStateInfo) {
             // 保持当前的显示状态，但更新撒谎记录状态
-            this.updateDocumentState(documentUri, currentStateInfo.currentState, hasLies);
+            await this.updateDocumentState(documentUri, currentStateInfo.currentState, hasLies);
         } else {
             // 如果没有状态，初始化为真话模式
-            this.updateDocumentState(documentUri, TruthToggleState.TRUTH, hasLies);
+            await this.updateDocumentState(documentUri, TruthToggleState.TRUTH, hasLies);
         }
 
         console.log(`[DEBUG] 状态已刷新: 有撒谎记录: ${hasLies}`);

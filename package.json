@@ -120,6 +120,21 @@
         "command": "ilovelie.showCurrentStatus",
         "title": "📊 显示当前状态",
         "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.showFakeFileStatus",
+        "title": "📄 显示.fake文件状态",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.cleanupFakeFile",
+        "title": "🧹 清理.fake文件",
+        "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.exportFakeFile",
+        "title": "📤 导出.fake文件",
+        "category": "我爱撒谎"
       }
     ],
     "submenus": [

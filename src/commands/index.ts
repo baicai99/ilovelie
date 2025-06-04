@@ -7,6 +7,8 @@ import { CommentHider } from '../commentHider';
 import { AIReplacer } from '../aiReplacer';
 import { CommentScanner } from '../commentScanner';
 import { ToggleManager } from '../toggleManager';
+import { FakeFileCommands } from '../fakeFileCommands';
+import { HistoryManager } from '../historyManager';
 
 /**
  * 命令注册器
@@ -21,6 +23,7 @@ export class CommandRegistrar {
     private aiReplacer: AIReplacer;
     private commentScanner: CommentScanner;
     private toggleManager: ToggleManager;
+    private fakeFileCommands: FakeFileCommands;
 
     constructor(
         commentReplacer: CommentReplacer,
@@ -30,7 +33,8 @@ export class CommandRegistrar {
         commentHider: CommentHider,
         aiReplacer: AIReplacer,
         commentScanner: CommentScanner,
-        toggleManager: ToggleManager
+        toggleManager: ToggleManager,
+        historyManager: HistoryManager
     ) {
         this.commentReplacer = commentReplacer;
         this.dictionaryReplacer = dictionaryReplacer;
@@ -40,6 +44,7 @@ export class CommandRegistrar {
         this.aiReplacer = aiReplacer;
         this.commentScanner = commentScanner;
         this.toggleManager = toggleManager;
+        this.fakeFileCommands = new FakeFileCommands(historyManager);
     }
 
     /**
@@ -123,6 +128,19 @@ export class CommandRegistrar {
             {
                 id: 'ilovelie.clearCurrentFileHistory',
                 handler: () => this.clearCurrentFileHistory()
+            },
+            // .fake 文件管理命令
+            {
+                id: 'ilovelie.showFakeFileStatus',
+                handler: () => this.fakeFileCommands.showFakeFileStatus()
+            },
+            {
+                id: 'ilovelie.cleanupFakeFile',
+                handler: () => this.fakeFileCommands.cleanupFakeFile()
+            },
+            {
+                id: 'ilovelie.exportFakeFile',
+                handler: () => this.fakeFileCommands.exportFakeFile()
             }
         ];
 
@@ -338,14 +356,12 @@ export class CommandRegistrar {
             const confirm = await vscode.window.showWarningMessage(
                 `确定要永久清除当前文件的 ${records.length} 条撒谎历史记录吗？此操作不可撤销！`,
                 '确定', '取消'
-            );
-
-            if (confirm === '确定') {
-                const result = this.restoreManager.historyManager.clearRecordsForFile(documentUri);
+            ); if (confirm === '确定') {
+                const result = await this.restoreManager.historyManager.clearRecordsForFile(documentUri);
 
                 if (result.success) {
                     // 更新toggle状态
-                    this.toggleManager.refreshDocumentState(documentUri);
+                    await this.toggleManager.refreshDocumentState(documentUri);
 
                     vscode.window.showInformationMessage(
                         `已永久清除当前文件的 ${result.clearedCount} 条撒谎历史记录 🗑️`
