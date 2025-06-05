@@ -37,10 +37,10 @@ export function activate(context: vscode.ExtensionContext) {
 	// 初始化所有管理器
 	historyManager = new HistoryManager();
 	historyManager.initialize(context);
-	commentDetector = new CommentDetector();
-	commentScanner = new CommentScanner();
+	commentDetector = new CommentDetector(); commentScanner = new CommentScanner();
 	restoreManager = new RestoreManager(historyManager);
 	toggleManager = new ToggleManager(historyManager, commentScanner);
+	toggleManager.initialize(context);
 	// 传递toggleManager给需要它的替换器
 	commentReplacer = new CommentReplacer(commentDetector, historyManager, toggleManager);
 	dictionaryReplacer = new DictionaryReplacer(commentDetector, historyManager, toggleManager);

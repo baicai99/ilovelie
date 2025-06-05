@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { HistoryRecord } from './types';
-import { FakeFileManager } from './fakeFileManager';
 
 /**
  * 历史记录管理器
@@ -9,10 +8,8 @@ import { FakeFileManager } from './fakeFileManager';
 export class HistoryManager {
     private changeHistory: HistoryRecord[] = [];
     private extensionContext: vscode.ExtensionContext | null = null;
-    private fakeFileManager: FakeFileManager;
 
     constructor() {
-        this.fakeFileManager = new FakeFileManager();
     }
 
     /**
@@ -54,15 +51,6 @@ export class HistoryManager {
     public async addRecord(record: HistoryRecord): Promise<void> {
         this.changeHistory.push(record);
         this.saveHistory();
-
-        // 同步到 .fake 文件
-        try {
-            await this.fakeFileManager.recordHistoryChange(record);
-            console.log(`[HistoryManager] 已同步历史记录到 .fake 文件: ${record.id}`);
-        } catch (error) {
-            console.error(`[HistoryManager] 同步到 .fake 文件失败:`, error);
-            // 即使同步失败，也不影响历史记录的添加
-        }
     }
 
     /**
@@ -120,15 +108,6 @@ export class HistoryManager {
         );
 
         this.saveHistory();
-
-        // 同步清理 .fake 文件
-        try {
-            const filePath = documentUri.startsWith('file://') ? vscode.Uri.parse(documentUri).fsPath : documentUri;
-            await this.fakeFileManager.cleanupFileRecord(filePath);
-            console.log(`[HistoryManager] 已同步清理 .fake 文件记录: ${filePath}`);
-        } catch (error) {
-            console.error(`[HistoryManager] 清理 .fake 文件失败:`, error);
-        }
 
         console.log(`[DEBUG] 永久清除文件 ${documentUri} 的 ${count} 条记录`);
 
@@ -445,9 +424,7 @@ export class HistoryManager {
                 this.removeRecordById(id);
             });
 
-            console.log(`[DEBUG] 恢复完成，共恢复 ${editOperations.length} 条记录`);
-
-            return {
+            console.log(`[DEBUG] 恢复完成，共恢复 ${editOperations.length} 条记录`); return {
                 success: true,
                 restoredCount: editOperations.length
             };
@@ -460,13 +437,6 @@ export class HistoryManager {
                 errorMessage: `恢复失败: ${error}`
             };
         }
-    }
-
-    /**
-     * 获取 FakeFileManager 实例
-     */
-    public getFakeFileManager(): FakeFileManager {
-        return this.fakeFileManager;
     }
 
     /**

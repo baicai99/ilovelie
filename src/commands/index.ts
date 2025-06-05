@@ -7,7 +7,6 @@ import { CommentHider } from '../commentHider';
 import { AIReplacer } from '../aiReplacer';
 import { CommentScanner } from '../commentScanner';
 import { ToggleManager } from '../toggleManager';
-import { FakeFileCommands } from '../fakeFileCommands';
 import { HistoryManager } from '../historyManager';
 
 /**
@@ -23,7 +22,6 @@ export class CommandRegistrar {
     private aiReplacer: AIReplacer;
     private commentScanner: CommentScanner;
     private toggleManager: ToggleManager;
-    private fakeFileCommands: FakeFileCommands;
 
     constructor(
         commentReplacer: CommentReplacer,
@@ -44,7 +42,6 @@ export class CommandRegistrar {
         this.aiReplacer = aiReplacer;
         this.commentScanner = commentScanner;
         this.toggleManager = toggleManager;
-        this.fakeFileCommands = new FakeFileCommands(historyManager);
     }
 
     /**
@@ -124,23 +121,9 @@ export class CommandRegistrar {
             {
                 id: 'ilovelie.showCurrentStatus',
                 handler: () => this.toggleManager.showCurrentStatus()
-            },
-            {
+            }, {
                 id: 'ilovelie.clearCurrentFileHistory',
                 handler: () => this.clearCurrentFileHistory()
-            },
-            // .fake 文件管理命令
-            {
-                id: 'ilovelie.showFakeFileStatus',
-                handler: () => this.fakeFileCommands.showFakeFileStatus()
-            },
-            {
-                id: 'ilovelie.cleanupFakeFile',
-                handler: () => this.fakeFileCommands.cleanupFakeFile()
-            },
-            {
-                id: 'ilovelie.exportFakeFile',
-                handler: () => this.fakeFileCommands.exportFakeFile()
             }
         ];
 

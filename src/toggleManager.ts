@@ -6,21 +6,17 @@ import * as vscode from 'vscode';
 import { TruthToggleState, ToggleStateInfo, ToggleResult, ScannedComment } from './types';
 import { HistoryManager } from './historyManager';
 import { CommentScanner } from './commentScanner';
-import { FakeFileManager } from './fakeFileManager';
 
 export class ToggleManager {
     private historyManager: HistoryManager;
     private commentScanner: CommentScanner;
-    private fakeFileManager: FakeFileManager;
     private documentStates: Map<string, ToggleStateInfo> = new Map();
     private statusBarItem: vscode.StatusBarItem;
+    private extensionContext: vscode.ExtensionContext | null = null;
 
     constructor(historyManager: HistoryManager, commentScanner: CommentScanner) {
         this.historyManager = historyManager;
-        this.commentScanner = commentScanner;
-        this.fakeFileManager = historyManager.getFakeFileManager();
-
-        // 创建状态栏项
+        this.commentScanner = commentScanner;        // 创建状态栏项
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this.statusBarItem.command = 'ilovelie.toggleTruthState';
         this.statusBarItem.tooltip = '点击切换真话/假话模式';
@@ -124,13 +120,13 @@ export class ToggleManager {
      * 获取当前文档的状态
      */
     public getCurrentState(documentUri: string): TruthToggleState {
-        // 首先从 .fake 文件获取状态
+        // 首先从 globalstate 获取状态
         const filePath = documentUri.startsWith('file://') ? vscode.Uri.parse(documentUri).fsPath : documentUri;
-        const fakeFileState = this.fakeFileManager.getFileState(filePath);
+        const globalState = this.getFileStateFromGlobalState(filePath);
 
-        // 如果 .fake 文件有状态记录，优先使用
-        if (fakeFileState !== TruthToggleState.TRUTH || this.fakeFileManager.hasLiesInFile(filePath)) {
-            return fakeFileState;
+        // 如果 globalstate 有状态记录，优先使用
+        if (globalState !== TruthToggleState.TRUTH || this.hasLiesInFile(filePath)) {
+            return globalState;
         }
 
         // 回退到内存状态（兼容性）
@@ -147,11 +143,11 @@ export class ToggleManager {
      * 检查文档是否有撒谎记录
      */
     private async hasLiesInDocument(documentUri: string): Promise<boolean> {
-        // 首先检查 .fake 文件
+        // 首先检查历史记录
         const filePath = documentUri.startsWith('file://') ? vscode.Uri.parse(documentUri).fsPath : documentUri;
-        const hasLiesInFake = this.fakeFileManager.hasLiesInFile(filePath);
+        const hasLies = this.hasLiesInFile(filePath);
 
-        if (hasLiesInFake) {
+        if (hasLies) {
             return true;
         }
 
@@ -380,15 +376,13 @@ export class ToggleManager {
             lastToggleTime: Date.now(),
             documentUri: documentUri,
             hasLies: hasLies
-        });
-
-        // 同步状态到 .fake 文件
+        });        // 同步状态到 globalstate
         try {
             const filePath = documentUri.startsWith('file://') ? vscode.Uri.parse(documentUri).fsPath : documentUri;
-            await this.fakeFileManager.recordFileStateChange(filePath, newState);
-            console.log(`[ToggleManager] 已同步状态到 .fake 文件: ${filePath} -> ${newState}`);
+            await this.saveFileStateToGlobalState(filePath, newState);
+            console.log(`[ToggleManager] 已同步状态到 globalstate: ${filePath} -> ${newState}`);
         } catch (error) {
-            console.error(`[ToggleManager] 同步状态到 .fake 文件失败:`, error);
+            console.error(`[ToggleManager] 同步状态到 globalstate 失败:`, error);
         }
 
         // 更新状态栏
@@ -579,5 +573,56 @@ export class ToggleManager {
         }
 
         console.log(`[DEBUG] 状态已刷新: 有撒谎记录: ${hasLies}`);
+    }
+
+    /**
+     * 初始化 ToggleManager
+     */
+    public initialize(context: vscode.ExtensionContext): void {
+        this.extensionContext = context;
+    }
+
+    /**
+     * 从 globalstate 获取文件状态
+     */
+    private getFileStateFromGlobalState(filePath: string): TruthToggleState {
+        if (!this.extensionContext) {
+            return TruthToggleState.TRUTH;
+        }
+
+        const stateKey = `fileState_${this.getRelativePath(filePath)}`;
+        return this.extensionContext.globalState.get(stateKey, TruthToggleState.TRUTH);
+    }
+
+    /**
+     * 保存文件状态到 globalstate
+     */
+    private async saveFileStateToGlobalState(filePath: string, state: TruthToggleState): Promise<void> {
+        if (!this.extensionContext) {
+            return;
+        }
+
+        const stateKey = `fileState_${this.getRelativePath(filePath)}`;
+        await this.extensionContext.globalState.update(stateKey, state);
+    }    /**
+     * 检查文件是否有撒谎记录（通过历史记录）
+     */
+    private hasLiesInFile(filePath: string): boolean {
+        const documentUri = filePath.startsWith('file://') ? filePath : vscode.Uri.file(filePath).toString();
+        const records = this.historyManager.getRecordsForFile(documentUri);
+        return records.length > 0;
+    }
+
+    /**
+     * 获取文件的相对路径
+     */
+    private getRelativePath(absolutePath: string): string {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            return absolutePath;
+        }
+
+        const path = require('path');
+        return path.relative(workspaceFolder.uri.fsPath, absolutePath);
     }
 }
