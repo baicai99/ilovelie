@@ -20,17 +20,21 @@ export class DictionaryReplacer {
     private liesDictionary: Map<string, string[]>;
 
     constructor(commentDetector: CommentDetector, historyManager: HistoryManager, toggleManager?: ToggleManager) {
+        console.log('[DictionaryReplacer] 初始化字典替换器');
         this.commentDetector = commentDetector;
         this.commentScanner = new CommentScanner();
         this.historyManager = historyManager;
         this.toggleManager = toggleManager;
         // 初始化字典
         this.liesDictionary = createLiesDictionary();
-    }/**
-     * 字典替换注释功能
-     * 检测注释中的关键词并进行替换，如果没有关键词则随机替换
+        console.log('[DictionaryReplacer] 字典大小:', this.liesDictionary.size);
+    }    /**
+     * 字典替换注释功能（重构版）
+     * 检测注释中的关键词并进行替换，如果没有关键词则使用随机替换
+     * 现在使用统一的核心替换逻辑，避免代码重复
      */
     public async dictionaryReplaceComments(): Promise<void> {
+        console.log('[DictionaryReplacer] 开始执行批量字典替换');
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             vscode.window.showErrorMessage('请先打开一个文件！');
@@ -38,18 +42,39 @@ export class DictionaryReplacer {
         }
 
         // 使用CommentScanner检测当前文件中的所有注释
+        console.log('[DictionaryReplacer] 扫描文档中的注释');
         const scanResult = await this.commentScanner.scanActiveDocument();
 
         if (!scanResult.success || scanResult.comments.length === 0) {
+            console.log('[DictionaryReplacer] 未找到注释，扫描结果:', scanResult);
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
-        } let replacedCount = 0;
-        const results: SingleReplaceResult[] = [];        // 开始编辑操作
+        }
+
+        console.log(`[DictionaryReplacer] 找到 ${scanResult.comments.length} 个注释`);
+
+        // 分析可以进行字典替换的注释
+        const dictionaryReplaceableComments = scanResult.comments.filter(comment => {
+            const lie = findMatchingLie(comment.cleanText, this.liesDictionary);
+            return lie !== null;
+        });
+
+        console.log(`[DictionaryReplacer] 可进行字典替换的注释: ${dictionaryReplaceableComments.length} 个`);
+
+        let totalReplacedCount = 0;
+        let dictionaryReplacedCount = 0;
+        let randomReplacedCount = 0;
+
+        // 执行替换操作
         const success = await editor.edit(editBuilder => {
             for (const comment of scanResult.comments) {
                 const lieText = this.generateLieForComment(comment.cleanText);
 
                 if (lieText) {
+                    const isDictionaryMatch = findMatchingLie(comment.cleanText, this.liesDictionary) !== null;
+
+                    console.log(`[DictionaryReplacer] 替换注释: "${comment.cleanText}" -> "${lieText}" (${isDictionaryMatch ? '字典匹配' : '随机生成'})`);
+
                     // 创建替换范围
                     const range = new vscode.Range(
                         new vscode.Position(comment.range.start.line, comment.range.start.character),
@@ -57,7 +82,11 @@ export class DictionaryReplacer {
                     );
 
                     // 保持注释格式，只替换内容
-                    const formattedLie = this.formatCommentWithLie(comment.content, lieText, this.getCommentTypeFromFormat(comment.format)); editBuilder.replace(range, formattedLie);// 记录历史
+                    const formattedLie = this.formatCommentWithLie(comment.content, lieText, this.getCommentTypeFromFormat(comment.format));
+
+                    editBuilder.replace(range, formattedLie);
+
+                    // 记录历史
                     const historyRecord: HistoryRecord = {
                         id: this.generateId(),
                         filePath: editor.document.uri.fsPath,
@@ -76,28 +105,42 @@ export class DictionaryReplacer {
                     };
 
                     this.historyManager.addRecord(historyRecord);
-                    results.push({
-                        success: true,
-                        originalText: comment.content,
-                        newText: formattedLie,
-                        lineNumber: comment.range.start.line + 1
-                    });
 
-                    replacedCount++;
+                    totalReplacedCount++;
+                    if (isDictionaryMatch) {
+                        dictionaryReplacedCount++;
+                    } else {
+                        randomReplacedCount++;
+                    }
+                } else {
+                    console.log(`[DictionaryReplacer] 跳过注释（无匹配内容）: "${comment.cleanText}"`);
                 }
             }
-        }); if (success && replacedCount > 0) {
+        });
+
+        console.log(`[DictionaryReplacer] 替换操作完成，成功: ${success}, 总替换数量: ${totalReplacedCount} (字典: ${dictionaryReplacedCount}, 随机: ${randomReplacedCount})`);
+
+        if (success && totalReplacedCount > 0) {
             // 通知toggle manager状态已更新
             this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
-            vscode.window.showInformationMessage(
-                `字典替换完成！共替换了 ${replacedCount} 个注释。`
-            );
-        } else if (replacedCount === 0) {
+
+            // 构建详细的完成消息
+            let message = `字典替换完成！共替换了 ${totalReplacedCount} 个注释`;
+            if (dictionaryReplacedCount > 0 && randomReplacedCount > 0) {
+                message += ` (字典匹配: ${dictionaryReplacedCount} 个，随机生成: ${randomReplacedCount} 个)`;
+            } else if (dictionaryReplacedCount > 0) {
+                message += ` (全部为字典匹配)`;
+            } else {
+                message += ` (全部为随机生成)`;
+            }
+
+            vscode.window.showInformationMessage(message + '。');
+        } else if (totalReplacedCount === 0) {
             vscode.window.showInformationMessage('没有找到可以替换的注释内容。');
         } else {
             vscode.window.showErrorMessage('替换操作失败！');
         }
-    }    /**
+    }/**
      * 为注释生成撒谎内容
      * 优先查找字典关键词，没有匹配则使用随机内容
      */
@@ -123,7 +166,7 @@ export class DictionaryReplacer {
     private extractCommentContent(commentText: string): string {
         return commentText
             .replace(/^\/\*+/, '')  // 移除 /* 开头
-            .replace(/\*+\/$/, '')  // 移除*/ 结尾
+            .replace(/\*+\/$/, '')  // 秼除*/ 结尾
             .replace(/^\/\/+/, '')  // 移除 // 开头
             .replace(/^\s*\*+/gm, '') // 移除每行开头的 * (全局多行模式)
             .replace(/<!--/, '')    // 秘移除 HTML 注释开头
@@ -362,10 +405,8 @@ export class DictionaryReplacer {
                 '替换匹配的注释',
                 '查看详细信息',
                 '取消'
-            );
-
-            if (action === '替换匹配的注释') {
-                await this.executeSmartDictionaryReplace(replaceableComments);
+            ); if (action === '替换匹配的注释') {
+                await this.executeSmartDictionaryReplace(replaceableComments, true);
             } else if (action === '查看详细信息') {
                 await this.showReplaceableCommentsList(replaceableComments, scanResult.totalComments);
             }
@@ -373,14 +414,19 @@ export class DictionaryReplacer {
         } catch (error) {
             vscode.window.showErrorMessage(`智能字典替换时发生错误: ${error}`);
         }
-    }
+    }    /**
+     * 执行智能字典替换（重构版）
+     * @param comments 要替换的注释列表
+     * @param showMessage 是否显示完成消息，默认为false，避免重复显示
+     * @returns 返回替换结果
+     */
+    private async executeSmartDictionaryReplace(comments: any[], showMessage: boolean = false): Promise<{ success: boolean, replacedCount: number }> {
+        console.log('[DictionaryReplacer] 执行智能字典替换，注释数量:', comments.length, '显示消息:', showMessage);
 
-    /**
-     * 执行智能字典替换
-     */    private async executeSmartDictionaryReplace(comments: any[]): Promise<void> {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            return;
+            console.log('[DictionaryReplacer] 未找到活动编辑器');
+            return { success: false, replacedCount: 0 };
         }
 
         let replacedCount = 0;
@@ -389,7 +435,11 @@ export class DictionaryReplacer {
         // 开始编辑操作
         const success = await editor.edit(editBuilder => {
             for (const comment of comments) {
-                const lie = findMatchingLie(comment.cleanText, this.liesDictionary); if (lie) {
+                const lie = findMatchingLie(comment.cleanText, this.liesDictionary);
+
+                if (lie) {
+                    console.log(`[DictionaryReplacer] 智能替换注释: "${comment.cleanText}" -> "${lie}"`);
+
                     // 构建新的注释文本，保持原有格式
                     let newCommentText = '';
 
@@ -435,17 +485,31 @@ export class DictionaryReplacer {
 
                     this.historyManager.addRecord(record);
                     replacedCount++;
+                } else {
+                    console.log(`[DictionaryReplacer] 跳过注释（无匹配内容）: "${comment.cleanText}"`);
                 }
             }
-        }); if (success) {
+        });
+
+        console.log(`[DictionaryReplacer] 智能替换操作完成，成功: ${success}, 替换数量: ${replacedCount}`);
+
+        if (success && replacedCount > 0) {
             // 通知toggle manager状态已更新
             this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
-            vscode.window.showInformationMessage(
-                `字典替换完成！成功替换了 ${replacedCount} 条注释`
-            );
-        } else {
+
+            // 只有在showMessage为true时才显示消息
+            if (showMessage) {
+                vscode.window.showInformationMessage(
+                    `智能字典替换完成！成功替换了 ${replacedCount} 条注释`
+                );
+            }
+        } else if (success && replacedCount === 0 && showMessage) {
+            vscode.window.showInformationMessage('没有找到可以替换的注释内容。');
+        } else if (!success && showMessage) {
             vscode.window.showErrorMessage('字典替换失败！');
         }
+
+        return { success, replacedCount };
     }
 
     /**
