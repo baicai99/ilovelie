@@ -92,21 +92,6 @@
         "category": "我爱撒谎"
       },
       {
-        "command": "ilovelie.showHistory",
-        "title": "查看撒谎历史",
-        "category": "我爱撒谎"
-      },
-      {
-        "command": "ilovelie.restoreFromHistory",
-        "title": "从历史中还原",
-        "category": "我爱撒谎"
-      },
-      {
-        "command": "ilovelie.clearAllHistory",
-        "title": "清除所有历史",
-        "category": "我爱撒谎"
-      },
-      {
         "command": "ilovelie.configureAI",
         "title": "🤖 打开AI配置中心",
         "category": "我爱撒谎"
@@ -120,13 +105,6 @@
         "command": "ilovelie.showCurrentStatus",
         "title": "📊 显示当前状态",
         "category": "我爱撒谎"
-      }
-    ],
-    "submenus": [
-      {
-        "id": "ilovelie.history",
-        "label": "历史",
-        "icon": "$(history)"
       }
     ],
     "menus": {
@@ -184,26 +162,8 @@
           "group": "z_ilovelie@15"
         },
         {
-          "submenu": "ilovelie.history",
-          "group": "z_ilovelie@16"
-        },
-        {
           "command": "ilovelie.configureAI",
           "group": "z_ilovelie@16"
-        }
-      ],
-      "ilovelie.history": [
-        {
-          "command": "ilovelie.showHistory",
-          "group": "history@1"
-        },
-        {
-          "command": "ilovelie.restoreFromHistory",
-          "group": "history@2"
-        },
-        {
-          "command": "ilovelie.clearAllHistory",
-          "group": "history@3"
         }
       ],
       "commandPalette": [
@@ -218,15 +178,6 @@
         },
         {
           "command": "ilovelie.selectiveDictionaryReplace"
-        },
-        {
-          "command": "ilovelie.showHistory"
-        },
-        {
-          "command": "ilovelie.restoreFromHistory"
-        },
-        {
-          "command": "ilovelie.clearAllHistory"
         },
         {
           "command": "ilovelie.toggleCommentVisibility"

@@ -54,6 +54,14 @@ export interface HistoryRecord {
     // 位置信息，使还原更准确
     startPosition: { line: number; character: number };
     endPosition: { line: number; character: number };
+    // 会话ID，用于标识一批相关的操作
+    sessionId?: string;
+    // 是否为当前活跃会话的记录
+    isActive?: boolean;
+    // 会话结束时间（用于历史版本管理）
+    sessionEndTime?: number;
+    // 历史版本号（同一位置的多次修改）
+    versionNumber?: number;
 }
 
 /**

@@ -8,6 +8,7 @@ import { HistoryRecord } from './types';
 export class HistoryManager {
     private changeHistory: HistoryRecord[] = [];
     private extensionContext: vscode.ExtensionContext | null = null;
+    private currentSessions: Map<string, string> = new Map(); // filePath -> sessionId
 
     constructor() {
     }
@@ -18,13 +19,60 @@ export class HistoryManager {
     public initialize(context: vscode.ExtensionContext): void {
         this.extensionContext = context;
         this.loadHistory();
-    }
-
-    /**
+    }    /**
      * 生成唯一ID
      */
     private generateId(): string {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    /**
+     * 生成会话ID
+     */
+    private generateSessionId(): string {
+        return 'session_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2);
+    }
+
+    /**
+     * 开始新的撒谎会话
+     */
+    public startLieSession(filePath: string): string {
+        const sessionId = this.generateSessionId();
+        this.currentSessions.set(filePath, sessionId);
+        console.log(`[DEBUG] 开始新的撒谎会话: ${sessionId} for file: ${filePath}`);
+        return sessionId;
+    }    /**
+     * 结束撒谎会话
+     */
+    public endLieSession(filePath: string): void {
+        const sessionId = this.currentSessions.get(filePath);
+        if (sessionId) {
+            console.log(`[DEBUG] 结束撒谎会话: ${sessionId} for file: ${filePath}`);
+            this.currentSessions.delete(filePath);
+            // 保留历史记录，但标记会话为结束状态
+            this.changeHistory.forEach(record => {
+                if (record.sessionId === sessionId) {
+                    record.isActive = false;
+                    // 添加会话结束时间戳
+                    record.sessionEndTime = Date.now();
+                }
+            });
+            this.saveHistory();
+        }
+    }
+
+    /**
+     * 获取文件的当前活跃会话ID
+     */
+    public getCurrentSessionId(filePath: string): string | undefined {
+        return this.currentSessions.get(filePath);
+    }
+
+    /**
+     * 检查文件是否有活跃的撒谎会话
+     */
+    public hasActiveSession(filePath: string): boolean {
+        return this.currentSessions.has(filePath);
     }    /**
      * 创建历史记录
      */
@@ -35,6 +83,7 @@ export class HistoryManager {
         range: vscode.Range,
         type: 'manual-replace' | 'dictionary-replace' | 'ai-replace' | 'ai-batch-replace' | 'ai-selective-replace' | 'hide-comment' = 'manual-replace'
     ): HistoryRecord {
+        const sessionId = this.getCurrentSessionId(filePath);
         return {
             id: this.generateId(),
             filePath,
@@ -43,14 +92,47 @@ export class HistoryManager {
             timestamp: Date.now(),
             type: type,
             startPosition: { line: range.start.line, character: range.start.character },
-            endPosition: { line: range.end.line, character: range.end.character }
+            endPosition: { line: range.end.line, character: range.end.character },
+            sessionId: sessionId,
+            isActive: sessionId !== undefined
         };
     }    /**
      * 添加历史记录
      */
     public async addRecord(record: HistoryRecord): Promise<void> {
+        // 使用新的版本管理方法
+        await this.addRecordWithVersioning(record);
+    }
+
+    /**
+     * 添加历史记录（增强版本，支持版本管理）
+     */
+    public async addRecordWithVersioning(record: HistoryRecord): Promise<void> {
+        // 如果记录没有会话ID，但文件有活跃会话，则分配当前会话ID
+        if (!record.sessionId && this.hasActiveSession(record.filePath)) {
+            record.sessionId = this.getCurrentSessionId(record.filePath);
+            record.isActive = true;
+        }
+
+        // 检查是否有相同位置的历史记录，设置版本号
+        const existingRecords = this.changeHistory.filter(existing =>
+            existing.filePath === record.filePath &&
+            existing.startPosition.line === record.startPosition.line &&
+            existing.startPosition.character === record.startPosition.character &&
+            existing.endPosition.line === record.endPosition.line &&
+            existing.endPosition.character === record.endPosition.character
+        );
+
+        if (existingRecords.length > 0) {
+            const maxVersion = Math.max(...existingRecords.map(r => r.versionNumber || 1));
+            record.versionNumber = maxVersion + 1;
+        } else {
+            record.versionNumber = 1;
+        }
+
         this.changeHistory.push(record);
         this.saveHistory();
+        console.log(`[DEBUG] 添加历史记录: ${record.id}, 会话: ${record.sessionId}, 活跃: ${record.isActive}, 版本: ${record.versionNumber}`);
     }
 
     /**
@@ -107,6 +189,11 @@ export class HistoryManager {
             record.filePath !== vscode.Uri.parse(documentUri).fsPath
         );
 
+        // 同时清理该文件的会话信息
+        const filePath = vscode.Uri.parse(documentUri).fsPath;
+        this.currentSessions.delete(filePath);
+        this.currentSessions.delete(documentUri);
+
         this.saveHistory();
 
         console.log(`[DEBUG] 永久清除文件 ${documentUri} 的 ${count} 条记录`);
@@ -115,6 +202,31 @@ export class HistoryManager {
             success: true,
             clearedCount: count
         };
+    }
+
+    /**
+     * 清理老旧的非活跃记录（可选的维护操作）
+     */
+    public cleanupOldRecords(maxAge: number = 7 * 24 * 60 * 60 * 1000): number { // 默认7天
+        const cutoffTime = Date.now() - maxAge;
+        const initialCount = this.changeHistory.length;
+
+        this.changeHistory = this.changeHistory.filter(record => {
+            // 保留活跃记录，即使它们很老
+            if (record.isActive === true) {
+                return true;
+            }
+            // 保留较新的记录
+            return record.timestamp > cutoffTime;
+        });
+
+        const cleanedCount = initialCount - this.changeHistory.length;
+        if (cleanedCount > 0) {
+            this.saveHistory();
+            console.log(`[DEBUG] 清理了 ${cleanedCount} 条老旧记录`);
+        }
+
+        return cleanedCount;
     }
 
     /**
@@ -140,12 +252,25 @@ export class HistoryManager {
             this.changeHistory = savedHistory.map(record => ({
                 ...record,
                 timestamp: typeof record.timestamp === 'number' ? record.timestamp :
-                    (record.timestamp instanceof Date ? record.timestamp.getTime() : Date.now())
+                    (record.timestamp instanceof Date ? record.timestamp.getTime() : Date.now()),
+                // 为老记录设置默认值
+                sessionId: record.sessionId || undefined,
+                isActive: record.isActive !== undefined ? record.isActive : false,
+                sessionEndTime: record.sessionEndTime || undefined,
+                versionNumber: record.versionNumber || 1
             }));
-        }
-    }
 
-    /**
+            // 重建会话映射（仅对活跃记录）
+            this.currentSessions.clear();
+            this.changeHistory.forEach(record => {
+                if (record.isActive && record.sessionId) {
+                    this.currentSessions.set(record.filePath, record.sessionId);
+                }
+            });
+
+            console.log(`[DEBUG] 加载了 ${this.changeHistory.length} 条历史记录，重建了 ${this.currentSessions.size} 个活跃会话`);
+        }
+    }/**
      * 获取指定文件的历史记录 (使用URI字符串)
      */
     public getRecordsForFile(documentUri: string): HistoryRecord[] {
@@ -154,20 +279,61 @@ export class HistoryManager {
             record.filePath === documentUri ||
             record.filePath === vscode.Uri.parse(documentUri).fsPath
         );
+    }
+
+    /**
+     * 获取指定文件的活跃会话记录（仅用于恢复操作）
+     */
+    public getActiveRecordsForFile(documentUri: string): HistoryRecord[] {
+        const filePath = vscode.Uri.parse(documentUri).fsPath;
+        const currentSessionId = this.getCurrentSessionId(filePath) || this.getCurrentSessionId(documentUri);
+
+        const activeRecords = this.changeHistory.filter(record => {
+            const matchesFile = record.filePath === documentUri || record.filePath === filePath;
+            const isActive = record.isActive === true || (record.sessionId && record.sessionId === currentSessionId);
+            return matchesFile && isActive;
+        }); console.log(`[DEBUG] 获取文件 ${documentUri} 的活跃记录: 总记录数 ${this.changeHistory.length}, 文件匹配记录数 ${this.getRecordsForFile(documentUri).length}, 活跃记录数 ${activeRecords.length}`);
+        console.log(`[DEBUG] 当前会话ID: ${currentSessionId}`);
+
+        return activeRecords;
+    }
+
+    /**
+     * 重新激活指定文件的历史记录
+     */
+    public reactivateRecordsForFile(documentUri: string, sessionId: string): void {
+        const filePath = vscode.Uri.parse(documentUri).fsPath;
+        let reactivatedCount = 0;
+
+        this.changeHistory.forEach(record => {
+            const matchesFile = record.filePath === documentUri || record.filePath === filePath;
+            if (matchesFile && !record.isActive) {
+                console.log(`[DEBUG] 重新激活记录: ${record.id}`);
+                record.isActive = true;
+                record.sessionId = sessionId;
+                record.sessionEndTime = undefined; // 清除结束时间
+                reactivatedCount++;
+            }
+        });
+
+        console.log(`[DEBUG] 重新激活了 ${reactivatedCount} 条记录`);
+        this.saveHistory();
     }    /**
      * 临时恢复指定文件的所有记录（用于切换显示，不删除历史记录）
      */
     public async temporaryRestoreAllForFile(documentUri: string): Promise<{ success: boolean; restoredCount: number; errorMessage?: string }> {
         try {
-            console.log(`[DEBUG] 开始临时恢复文件 ${documentUri} 的所有记录`);
+            console.log(`[DEBUG] 开始临时恢复文件 ${documentUri} 的活跃记录`);
 
             const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(documentUri));
             const editor = await vscode.window.showTextDocument(document);
 
-            const records = this.getRecordsForFile(documentUri);
-            console.log(`[DEBUG] 找到 ${records.length} 条记录待临时恢复`);
+            // 只获取活跃会话的记录
+            const records = this.getActiveRecordsForFile(documentUri);
+            console.log(`[DEBUG] 找到 ${records.length} 条活跃记录待临时恢复`);
 
             if (records.length === 0) {
+                console.log(`[DEBUG] 没有找到活跃记录，可能该文件没有当前的撒谎会话`);
                 return {
                     success: true,
                     restoredCount: 0
@@ -293,22 +459,22 @@ export class HistoryManager {
                 errorMessage: `临时恢复失败: ${error}`
             };
         }
-    }
-
-    /**
+    }    /**
      * 恢复指定文件的所有记录（永久性恢复，会删除历史记录）
      */
     public async restoreAllForFile(documentUri: string): Promise<{ success: boolean; restoredCount: number; errorMessage?: string }> {
         try {
-            console.log(`[DEBUG] 开始恢复文件 ${documentUri} 的所有记录`);
+            console.log(`[DEBUG] 开始恢复文件 ${documentUri} 的活跃记录`);
 
             const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(documentUri));
             const editor = await vscode.window.showTextDocument(document);
 
-            const records = this.getRecordsForFile(documentUri);
-            console.log(`[DEBUG] 找到 ${records.length} 条记录待恢复`);
+            // 只获取活跃会话的记录
+            const records = this.getActiveRecordsForFile(documentUri);
+            console.log(`[DEBUG] 找到 ${records.length} 条活跃记录待恢复`);
 
             if (records.length === 0) {
+                console.log(`[DEBUG] 没有找到活跃记录，可能该文件没有当前的撒谎会话`);
                 return {
                     success: true,
                     restoredCount: 0

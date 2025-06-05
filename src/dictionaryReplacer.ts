@@ -41,12 +41,19 @@ export class DictionaryReplacer {
             return;
         }
 
+        // 启动新的撒谎会话
+        const filePath = editor.document.uri.fsPath;
+        const sessionId = this.historyManager.startLieSession(filePath);
+        console.log(`[DictionaryReplacer] 开始新的撒谎会话: ${sessionId}`);
+
         // 使用CommentScanner检测当前文件中的所有注释
         console.log('[DictionaryReplacer] 扫描文档中的注释');
         const scanResult = await this.commentScanner.scanActiveDocument();
 
         if (!scanResult.success || scanResult.comments.length === 0) {
             console.log('[DictionaryReplacer] 未找到注释，扫描结果:', scanResult);
+            // 结束会话，因为没有注释可以处理
+            this.historyManager.endLieSession(filePath);
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
         }
@@ -116,9 +123,7 @@ export class DictionaryReplacer {
                     console.log(`[DictionaryReplacer] 跳过注释（无匹配内容）: "${comment.cleanText}"`);
                 }
             }
-        });
-
-        console.log(`[DictionaryReplacer] 替换操作完成，成功: ${success}, 总替换数量: ${totalReplacedCount} (字典: ${dictionaryReplacedCount}, 随机: ${randomReplacedCount})`);
+        }); console.log(`[DictionaryReplacer] 替换操作完成，成功: ${success}, 总替换数量: ${totalReplacedCount} (字典: ${dictionaryReplacedCount}, 随机: ${randomReplacedCount})`);
 
         if (success && totalReplacedCount > 0) {
             // 通知toggle manager状态已更新
@@ -135,10 +140,17 @@ export class DictionaryReplacer {
             }
 
             vscode.window.showInformationMessage(message + '。');
-        } else if (totalReplacedCount === 0) {
-            vscode.window.showInformationMessage('没有找到可以替换的注释内容。');
+            console.log(`[DictionaryReplacer] 撒谎会话保持活跃，共处理 ${totalReplacedCount} 个注释`);
         } else {
-            vscode.window.showErrorMessage('替换操作失败！');
+            // 如果替换失败或没有替换任何注释，结束会话
+            this.historyManager.endLieSession(filePath);
+            console.log(`[DictionaryReplacer] 撒谎会话已结束，因为没有成功替换注释`);
+
+            if (totalReplacedCount === 0) {
+                vscode.window.showInformationMessage('没有找到可以替换的注释内容。');
+            } else {
+                vscode.window.showErrorMessage('替换操作失败！');
+            }
         }
     }/**
      * 为注释生成撒谎内容

@@ -166,6 +166,7 @@ export class CommentDetector {
     }    /**
      * 检测行是否为单行注释
      * 更严格的检查，确保注释符在行的有效位置，避免误识别代码
+     * 支持行尾注释和行首注释
      */
     private isLineComment(lineText: string, languageId: string): boolean {
         const trimmed = lineText.trim();
@@ -175,38 +176,29 @@ export class CommentDetector {
             return false;
         }
 
-        // 首先进行更严格的代码行检查
-        if (this.isObviousCodeLine(trimmed)) {
-            return false;
+        // 检查是否包含注释符
+        const slashIndex = lineText.indexOf('//');
+        const hashIndex = lineText.indexOf('#');
+        const htmlStartIndex = lineText.indexOf('<!--');
+
+        // 判断使用哪种注释符
+        let commentSymbolIndex = -1;
+        let isSlash = false;
+        let isHash = false;
+        let isHtml = false;
+
+        if (slashIndex !== -1) {
+            commentSymbolIndex = slashIndex;
+            isSlash = true;
+        } else if (hashIndex !== -1 && languageId !== 'csharp') {
+            commentSymbolIndex = hashIndex;
+            isHash = true;
+        } else if (htmlStartIndex !== -1 && lineText.indexOf('-->') > htmlStartIndex) {
+            commentSymbolIndex = htmlStartIndex;
+            isHtml = true;
         }
-
-        // 首先检查是否包含明显的代码关键字，如果包含则很可能不是注释
-        if (this.containsCodeKeywords(trimmed, languageId)) {
-            return false;
-        }
-
-        // 检查是否以注释符开始
-        const isSlash = trimmed.startsWith('//');
-        const isHash = trimmed.startsWith('#') && languageId !== 'csharp'; // C# 中 # 不是注释符
-        const isHtml = trimmed.startsWith('<!--') && trimmed.endsWith('-->');
-
-        if (!isSlash && !isHash && !isHtml) {
-            return false;
-        }
-
-        // 检查注释符前是否只有空白字符
-        const commentSymbolIndex = isSlash ? lineText.indexOf('//') :
-            isHash ? lineText.indexOf('#') :
-                lineText.indexOf('<!--');
 
         if (commentSymbolIndex === -1) {
-            return false;
-        }
-
-        const beforeComment = lineText.substring(0, commentSymbolIndex);
-
-        // 确保注释符之前只有空白字符（标准注释应该在行首或缩进后）
-        if (!/^\s*$/.test(beforeComment)) {
             return false;
         }
 
@@ -215,7 +207,145 @@ export class CommentDetector {
             return false;
         }
 
-        return true;
+        const beforeComment = lineText.substring(0, commentSymbolIndex);
+
+        // 检查注释符之前的内容
+        if (/^\s*$/.test(beforeComment)) {
+            // 情况1: 注释符前只有空白字符（行首注释）
+            return true;
+        } else {
+            // 情况2: 注释符前有代码（行尾注释）
+            // 验证前面的代码是否看起来合理
+            return this.isValidEndOfLineComment(beforeComment, languageId);
+        }
+    }
+
+    /**
+     * 验证行尾注释是否有效
+     * 检查注释符前的代码是否看起来是合理的代码语句
+     */
+    private isValidEndOfLineComment(codeBeforeComment: string, languageId: string): boolean {
+        const trimmedCode = codeBeforeComment.trim();
+
+        // 空字符串不算有效的行尾注释
+        if (!trimmedCode) {
+            return false;
+        }
+
+        // 常见的有效行尾注释模式
+        const validEndOfLinePatterns = [
+            /\w+\s*\([^)]*\)\s*;?\s*$/,      // 函数调用: processId(123); 
+            /\w+\s*=\s*[^;]+\s*;?\s*$/,      // 赋值语句: var x = value;
+            /\w+\s*\+\+\s*;?\s*$/,           // 自增: i++;
+            /\w+\s*--\s*;?\s*$/,             // 自减: i--;
+            /\w+\s*\.\s*\w+\s*;?\s*$/,       // 属性访问: obj.prop;
+            /\w+\s*\[\s*[^\]]*\s*\]\s*;?\s*$/, // 数组访问: arr[index];
+            /return\s+[^;]*\s*;?\s*$/,       // return 语句
+            /break\s*;?\s*$/,                // break 语句
+            /continue\s*;?\s*$/,             // continue 语句
+            /throw\s+[^;]*\s*;?\s*$/,        // throw 语句
+            /\}\s*$/,                        // 代码块结束
+            /\w+\s*:\s*[^,}]+\s*,?\s*$/,     // 对象属性: prop: value,
+            /.*\)\s*\{\s*$/,                 // 函数/方法定义开始
+            /.*\{\s*$/,                      // 代码块开始
+            /if\s*\([^)]*\)\s*$/,            // if 语句（无花括号）
+            /for\s*\([^)]*\)\s*$/,           // for 语句（无花括号）
+            /while\s*\([^)]*\)\s*$/,         // while 语句（无花括号）
+            /else\s*$/,                      // else 语句
+            /case\s+[^:]*:\s*$/,             // switch case
+            /default\s*:\s*$/,               // switch default
+        ];
+
+        // 检查是否匹配任何有效模式
+        const matchesValidPattern = validEndOfLinePatterns.some(pattern => pattern.test(trimmedCode));
+
+        if (matchesValidPattern) {
+            return true;
+        }
+
+        // 额外的语言特定检查
+        switch (languageId) {
+            case 'javascript':
+            case 'typescript':
+                return this.isValidJSEndOfLineComment(trimmedCode);
+            case 'python':
+                return this.isValidPythonEndOfLineComment(trimmedCode);
+            case 'java':
+            case 'csharp':
+                return this.isValidJavaEndOfLineComment(trimmedCode);
+            default:
+                // 对于未知语言，使用保守的方法
+                // 如果看起来像代码并且不包含注释符，则认为是有效的
+                return !this.containsCommentSymbols(trimmedCode) && this.looksLikeCode(trimmedCode);
+        }
+    }
+
+    /**
+     * 检查JavaScript/TypeScript的有效行尾注释
+     */
+    private isValidJSEndOfLineComment(codeBeforeComment: string): boolean {
+        const jsEndOfLinePatterns = [
+            /.*\)\s*=>\s*\{?\s*$/,           // 箭头函数
+            /.*\?\s*[^:]*\s*:\s*[^;]*\s*;?\s*$/, // 三元操作符
+            /.*&&\s*[^;]*\s*;?\s*$/,         // 逻辑与操作
+            /.*\|\|\s*[^;]*\s*;?\s*$/,       // 逻辑或操作
+            /await\s+[^;]*\s*;?\s*$/,        // await 语句
+            /console\.\w+\([^)]*\)\s*;?\s*$/, // console 调用
+        ];
+
+        return jsEndOfLinePatterns.some(pattern => pattern.test(codeBeforeComment));
+    }
+
+    /**
+     * 检查Python的有效行尾注释
+     */
+    private isValidPythonEndOfLineComment(codeBeforeComment: string): boolean {
+        const pythonEndOfLinePatterns = [
+            /\w+\([^)]*\)\s*$/,              // 函数调用
+            /\w+\s*=\s*[^=][^#]*$/,          // 赋值语句
+            /pass\s*$/,                      // pass 语句
+            /return\s+[^#]*$/,               // return 语句
+            /print\([^)]*\)\s*$/,            // print 函数
+        ];
+
+        return pythonEndOfLinePatterns.some(pattern => pattern.test(codeBeforeComment));
+    }
+
+    /**
+     * 检查Java/C#的有效行尾注释
+     */
+    private isValidJavaEndOfLineComment(codeBeforeComment: string): boolean {
+        const javaEndOfLinePatterns = [
+            /System\.out\.\w+\([^)]*\)\s*;?\s*$/, // System.out 调用
+            /\w+\.\w+\([^)]*\)\s*;?\s*$/,         // 方法调用
+            /new\s+\w+\([^)]*\)\s*;?\s*$/,        // 对象创建
+        ];
+
+        return javaEndOfLinePatterns.some(pattern => pattern.test(codeBeforeComment));
+    }
+
+    /**
+     * 检查文本是否包含注释符号
+     */
+    private containsCommentSymbols(text: string): boolean {
+        return text.includes('//') || text.includes('/*') || text.includes('*/') ||
+            text.includes('#') || text.includes('<!--') || text.includes('-->');
+    }
+
+    /**
+     * 简单检查文本是否看起来像代码
+     */
+    private looksLikeCode(text: string): boolean {
+        // 基本的代码特征
+        const codeFeatures = [
+            /[(){}[\]]/,                     // 括号
+            /[=+\-*/%]/,                     // 操作符
+            /[;,]/,                          // 分隔符
+            /\w+\./,                         // 点操作符
+            /\w+\(/,                         // 函数调用
+        ];
+
+        return codeFeatures.some(pattern => pattern.test(text));
     }
 
     /**
@@ -352,9 +482,10 @@ export class CommentDetector {
             return 'html';
         }
         return 'line';
-    }/**
+    }    /**
      * 检测文档中的所有注释
-     */    public detectComments(document: vscode.TextDocument): CommentInfo[] {
+     */
+    public detectComments(document: vscode.TextDocument): CommentInfo[] {
         const comments: CommentInfo[] = [];
         const languageId = document.languageId;
 
@@ -368,20 +499,24 @@ export class CommentDetector {
                 continue;
             }
 
-            // 检测单行注释 - 确保注释符在行的开始（忽略空白）
+            // 检测单行注释 - 支持行首注释和行尾注释
             if (this.isLineComment(lineText, languageId)) {
                 const commentType = this.getLineCommentType(trimmedText);
-                const startChar = line.firstNonWhitespaceCharacterIndex;
-                const endChar = lineText.length;
 
-                comments.push({
-                    text: lineText.substring(startChar),
-                    range: {
-                        start: { line: i, character: startChar },
-                        end: { line: i, character: endChar }
-                    },
-                    type: commentType
-                });
+                // 找到注释开始位置
+                const commentStartIndex = this.findCommentStartIndex(lineText, languageId);
+                if (commentStartIndex !== -1) {
+                    const endChar = lineText.length;
+
+                    comments.push({
+                        text: lineText.substring(commentStartIndex),
+                        range: {
+                            start: { line: i, character: commentStartIndex },
+                            end: { line: i, character: endChar }
+                        },
+                        type: commentType
+                    });
+                }
             }
             // 检测多行注释的开始
             else if (this.isValidMultiLineCommentStart(lineText)) {
@@ -395,7 +530,33 @@ export class CommentDetector {
         }
 
         return comments;
-    }    /**
+    }
+
+    /**
+     * 找到注释开始位置的索引
+     */
+    private findCommentStartIndex(lineText: string, languageId: string): number {
+        const slashIndex = lineText.indexOf('//');
+        const hashIndex = lineText.indexOf('#');
+        const htmlStartIndex = lineText.indexOf('<!--');
+
+        // 优先检查 // 注释
+        if (slashIndex !== -1 && !this.isInStringLiteral(lineText, slashIndex)) {
+            return slashIndex;
+        }
+
+        // 检查 # 注释（非C#语言）
+        if (hashIndex !== -1 && languageId !== 'csharp' && !this.isInStringLiteral(lineText, hashIndex)) {
+            return hashIndex;
+        }
+
+        // 检查 HTML 注释
+        if (htmlStartIndex !== -1 && lineText.indexOf('-->') > htmlStartIndex) {
+            return htmlStartIndex;
+        }
+
+        return -1;
+    }/**
      * 验证行是否是有效的多行注释开始
      * 防止错误识别包含 /* 的代码行（如字符串、正则表达式等）
      */

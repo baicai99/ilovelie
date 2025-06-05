@@ -555,9 +555,7 @@ ${numberedComments}
             console.error('批量AI生成失败:', error);
             throw new Error(`批量AI生成失败: ${error.message}`);
         }
-    }
-
-    /**
+    }    /**
      * AI替换单个注释
      */
     public async aiReplaceSingleComment(): Promise<void> {
@@ -571,19 +569,24 @@ ${numberedComments}
             return;
         }
 
-        const selection = editor.selection;
-        if (selection.isEmpty) {
-            vscode.window.showErrorMessage('请先选中要替换的注释！');
-            return;
-        }
-
-        const selectedText = editor.document.getText(selection);
-        if (!this.commentDetector.isComment(selectedText, editor.document.languageId)) {
-            vscode.window.showErrorMessage('选中的内容不是注释！');
-            return;
-        }
+        // 启动新的撒谎会话
+        const filePath = editor.document.uri.fsPath;
+        const sessionId = this.historyManager.startLieSession(filePath);
+        console.log(`[AIReplacer] 开始新的AI单个替换会话: ${sessionId}`);
 
         try {
+            const selection = editor.selection;
+            if (selection.isEmpty) {
+                vscode.window.showErrorMessage('请先选中要替换的注释！');
+                return;
+            }
+
+            const selectedText = editor.document.getText(selection);
+            if (!this.commentDetector.isComment(selectedText, editor.document.languageId)) {
+                vscode.window.showErrorMessage('选中的内容不是注释！');
+                return;
+            }
+
             // 显示加载提示
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
@@ -629,17 +632,27 @@ ${numberedComments}
                     };
 
                     this.historyManager.addRecord(historyRecord);
+                } else {
+                    // 替换失败，结束会话
+                    this.historyManager.endLieSession(filePath);
+                    console.log(`[AIReplacer] AI单个替换会话已结束，因为替换失败`);
+                    vscode.window.showErrorMessage('AI替换操作失败！');
+                    return;
                 }
             });
 
             // 通知toggle manager状态已更新
             this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
             vscode.window.showInformationMessage('🎉 AI撒谎替换完成！代码注释已被AI完美伪装。');
+            console.log(`[AIReplacer] AI单个替换会话保持活跃`);
 
         } catch (error: any) {
+            // 出现异常时结束会话
+            this.historyManager.endLieSession(filePath);
+            console.log(`[AIReplacer] AI单个替换会话已结束，因为出现异常: ${error.message}`);
             vscode.window.showErrorMessage(`😅 AI撒谎失败：${error.message}`);
         }
-    }    /**
+    }/**
      * AI批量替换注释（优化版）
      */
     public async aiBatchReplaceComments(): Promise<void> {
@@ -647,14 +660,23 @@ ${numberedComments}
             return;
         }
 
-        const editor = vscode.window.activeTextEditor; if (!editor) {
+        const editor = vscode.window.activeTextEditor;
+
+        if (!editor) {
             vscode.window.showErrorMessage('请先打开一个文件！');
             return;
         }
 
+        // 启动新的撒谎会话
+        const filePath = editor.document.uri.fsPath;
+        const sessionId = this.historyManager.startLieSession(filePath);
+        console.log(`[AIReplacer] 开始新的AI撒谎会话: ${sessionId}`);
+
         // 使用CommentScanner检测所有注释
         const scanResult = await this.scanCommentsWithScanner();
         if (!scanResult.success || scanResult.comments.length === 0) {
+            // 结束会话，因为没有注释可以处理
+            this.historyManager.endLieSession(filePath);
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
         }
@@ -806,9 +828,7 @@ ${numberedComments}
                         replacedCount++;
                     }
                 }
-            });
-
-            const failedCount = results.filter(r => !r.success).length; if (success && replacedCount > 0) {
+            }); const failedCount = results.filter(r => !r.success).length; if (success && replacedCount > 0) {
                 // 通知toggle manager状态已更新
                 this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
                 let message = `🎉 AI批量撒谎完成！成功替换了 ${replacedCount} 个注释`;
@@ -817,18 +837,26 @@ ${numberedComments}
                 }
                 message += `。使用了${failedCount > 0 && replacedCount < scanResult.comments.length ? '混合' : '批量'}处理模式。`;
                 vscode.window.showInformationMessage(message);
-            } else if (failedCount === results.length) {
-                vscode.window.showErrorMessage('😅 所有注释的AI生成都失败了！请检查网络连接和API配置。');
+                console.log(`[AIReplacer] 撒谎会话保持活跃，共处理 ${replacedCount} 个注释`);
             } else {
-                vscode.window.showErrorMessage('替换操作失败！');
+                // 如果替换失败或没有替换任何注释，结束会话
+                this.historyManager.endLieSession(filePath);
+                console.log(`[AIReplacer] 撒谎会话已结束，因为没有成功替换注释`);
+
+                if (failedCount === results.length) {
+                    vscode.window.showErrorMessage('😅 所有注释的AI生成都失败了！请检查网络连接和API配置。');
+                } else {
+                    vscode.window.showErrorMessage('替换操作失败！');
+                }
             }
 
         } catch (error: any) {
+            // 出现异常时结束会话
+            this.historyManager.endLieSession(filePath);
+            console.log(`[AIReplacer] 撒谎会话已结束，因为出现异常: ${error.message}`);
             vscode.window.showErrorMessage(`😅 AI批量撒谎失败：${error.message}`);
         }
-    }
-
-    /**
+    }    /**
      * AI选择性替换注释
      */
     public async aiSelectiveReplaceComments(): Promise<void> {
@@ -840,9 +868,15 @@ ${numberedComments}
             return;
         }
 
+        // 启动新的撒谎会话
+        const filePath = editor.document.uri.fsPath;
+        const sessionId = this.historyManager.startLieSession(filePath);
+        console.log(`[AIReplacer] 开始新的AI选择性撒谎会话: ${sessionId}`);
+
         // 使用CommentScanner检测所有注释
-        const scanResult = await this.scanCommentsWithScanner();
-        if (!scanResult.success || scanResult.comments.length === 0) {
+        const scanResult = await this.scanCommentsWithScanner(); if (!scanResult.success || scanResult.comments.length === 0) {
+            // 结束会话，因为没有注释可以处理
+            this.historyManager.endLieSession(filePath);
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
         }
@@ -1029,13 +1063,23 @@ ${numberedComments}
                 }
                 message += `。使用了${failedCount > 0 && replacedCount < selectedIndices.length ? '混合' : '批量'}处理模式。`;
                 vscode.window.showInformationMessage(message);
-            } else if (failedCount === results.length) {
-                vscode.window.showErrorMessage('😅 所有选中注释的AI生成都失败了！请检查网络连接和API配置。');
+                console.log(`[AIReplacer] 撒谎会话保持活跃，共处理 ${replacedCount} 个注释`);
             } else {
-                vscode.window.showErrorMessage('替换操作失败！');
+                // 如果替换失败或没有替换任何注释，结束会话
+                this.historyManager.endLieSession(filePath);
+                console.log(`[AIReplacer] 撒谎会话已结束，因为没有成功替换注释`);
+
+                if (failedCount === results.length) {
+                    vscode.window.showErrorMessage('😅 所有选中注释的AI生成都失败了！请检查网络连接和API配置。');
+                } else {
+                    vscode.window.showErrorMessage('替换操作失败！');
+                }
             }
 
         } catch (error: any) {
+            // 出现异常时结束会话
+            this.historyManager.endLieSession(filePath);
+            console.log(`[AIReplacer] 撒谎会话已结束，因为出现异常: ${error.message}`);
             vscode.window.showErrorMessage(`😅 AI选择性撒谎失败：${error.message}`);
         }
     }

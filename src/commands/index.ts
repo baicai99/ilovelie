@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { CommentReplacer } from '../commentReplacer';
 import { DictionaryReplacer } from '../dictionaryReplacer';
-import { RestoreManager } from '../restoreManager';
 import { CommentDetector } from '../commentDetector';
 import { CommentHider } from '../commentHider';
 import { AIReplacer } from '../aiReplacer';
@@ -16,17 +15,14 @@ import { HistoryManager } from '../historyManager';
 export class CommandRegistrar {
     private commentReplacer: CommentReplacer;
     private dictionaryReplacer: DictionaryReplacer;
-    private restoreManager: RestoreManager;
     private commentDetector: CommentDetector;
     private commentHider: CommentHider;
     private aiReplacer: AIReplacer;
     private commentScanner: CommentScanner;
     private toggleManager: ToggleManager;
-
-    constructor(
+    private historyManager: HistoryManager; constructor(
         commentReplacer: CommentReplacer,
         dictionaryReplacer: DictionaryReplacer,
-        restoreManager: RestoreManager,
         commentDetector: CommentDetector,
         commentHider: CommentHider,
         aiReplacer: AIReplacer,
@@ -36,12 +32,12 @@ export class CommandRegistrar {
     ) {
         this.commentReplacer = commentReplacer;
         this.dictionaryReplacer = dictionaryReplacer;
-        this.restoreManager = restoreManager;
         this.commentDetector = commentDetector;
         this.commentHider = commentHider;
         this.aiReplacer = aiReplacer;
         this.commentScanner = commentScanner;
         this.toggleManager = toggleManager;
+        this.historyManager = historyManager;
     }
 
     /**
@@ -67,22 +63,9 @@ export class CommandRegistrar {
             {
                 id: 'ilovelie.selectiveDictionaryReplace',
                 handler: () => this.dictionaryReplacer.selectiveDictionaryReplaceComments()
-            },
-            {
+            }, {
                 id: 'ilovelie.smartDictionaryReplace',
                 handler: () => this.dictionaryReplacer.smartDictionaryReplaceComments()
-            },
-            {
-                id: 'ilovelie.showHistory',
-                handler: () => this.restoreManager.showHistory()
-            },
-            {
-                id: 'ilovelie.restoreFromHistory',
-                handler: () => this.restoreManager.restoreFromHistory()
-            },
-            {
-                id: 'ilovelie.clearAllHistory',
-                handler: () => this.restoreManager.clearAllHistory()
             },
 
             // 注释隐藏命令
@@ -313,9 +296,7 @@ export class CommandRegistrar {
         } catch (error) {
             vscode.window.showErrorMessage(`切换状态时发生错误: ${error}`);
         }
-    }
-
-    /**
+    }    /**
      * 清除当前文件的撒谎历史记录
      */
     private async clearCurrentFileHistory(): Promise<void> {
@@ -329,7 +310,7 @@ export class CommandRegistrar {
             const documentUri = editor.document.uri.toString();
 
             // 获取当前文件的历史记录数量
-            const records = this.restoreManager.historyManager.getRecordsForFile(documentUri);
+            const records = this.historyManager.getRecordsForFile(documentUri);
 
             if (records.length === 0) {
                 vscode.window.showInformationMessage('当前文件没有撒谎历史记录');
@@ -339,8 +320,10 @@ export class CommandRegistrar {
             const confirm = await vscode.window.showWarningMessage(
                 `确定要永久清除当前文件的 ${records.length} 条撒谎历史记录吗？此操作不可撤销！`,
                 '确定', '取消'
-            ); if (confirm === '确定') {
-                const result = await this.restoreManager.historyManager.clearRecordsForFile(documentUri);
+            );
+
+            if (confirm === '确定') {
+                const result = await this.historyManager.clearRecordsForFile(documentUri);
 
                 if (result.success) {
                     // 更新toggle状态
