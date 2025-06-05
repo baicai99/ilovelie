@@ -7,14 +7,13 @@ windows，
 vscode，
 powershell，
 
-## 需求
+## 设定
 你现在扮演一位资深程序架构师，高级程序员。
 使用powershell的时候请使用 ; 而不是 &&。
 不必生成和执行测试文件。
 
-## BUG
-删除所有有关 .fake 的文件和方法。
-从现在开始不再使用 .fake 文件控制，仅使用一个方法控制，就是globalstate。
+## 任务
+给 toggleManager.ts 所有关键步骤打上 控制台输出 用于调试
 
 
 # 奖励
