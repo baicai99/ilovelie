@@ -577,21 +577,21 @@ export class ToggleManager {
         };
         console.log(`[ToggleManager] 范围验证结果: ${result.valid ? '通过' : '失败'}, 错误数量: ${errors.length}`);
         return result;
-    }/**
+    }    /**
      * 当用户进行撒谎操作后通知状态变化
      * 这个方法应该在任何替换操作完成后被调用
      */
     public async notifyLiesAdded(documentUri: string): Promise<void> {
         console.log(`[DEBUG] 通知撒谎操作完成: ${documentUri}`);
 
-        // 更新文档状态，标记为已有撒谎记录但当前显示真话
-        await this.updateDocumentState(documentUri, TruthToggleState.TRUTH, true);
+        // 更新文档状态，标记为已有撒谎记录且当前显示假话
+        await this.updateDocumentState(documentUri, TruthToggleState.LIE, true);
 
         // 更新状态栏显示
         this.updateStatusBar();
 
-        console.log(`[DEBUG] 状态已更新: 真话模式, 已有撒谎记录`);
-    }    /**
+        console.log(`[DEBUG] 状态已更新: 假话模式, 已有撒谎记录`);
+    }/**
      * 初始化文档状态
      * 在打开文档时检查是否已有撒谎记录
      */
