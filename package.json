@@ -105,6 +105,11 @@
         "command": "ilovelie.showCurrentStatus",
         "title": "📊 显示当前状态",
         "category": "我爱撒谎"
+      },
+      {
+        "command": "ilovelie.rewriteReplace",
+        "title": "重写-替换注释",
+        "category": "我爱撒谎"
       }
     ],
     "menus": {
@@ -193,6 +198,9 @@
         },
         {
           "command": "ilovelie.configureAI"
+        },
+        {
+          "command": "ilovelie.rewriteReplace"
         }
       ]
     },
