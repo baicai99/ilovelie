@@ -178,11 +178,11 @@ export class DictionaryReplacer {
     private extractCommentContent(commentText: string): string {
         return commentText
             .replace(/^\/\*+/, '')  // 移除 /* 开头
-            .replace(/\*+\/$/, '')  // 秼除*/ 结尾
+            .replace(/\*+\/$/, '')  // 移除 */ 结尾
             .replace(/^\/\/+/, '')  // 移除 // 开头
             .replace(/^\s*\*+/gm, '') // 移除每行开头的 * (全局多行模式)
-            .replace(/<!--/, '')    // 秘移除 HTML 注释开头
-            .replace(/-->/, '')     // 秘移除 HTML 注释结尾
+            .replace(/<!--/, '')    // 移除 HTML 注释开头
+            .replace(/-->/, '')     // 移除 HTML 注释结尾
             .replace(/^#+/, '')     // 移除 # 开头（markdown等）
             .replace(/\n/g, ' ')    // 将换行符替换为空格
             .replace(/\s+/g, ' ')   // 将多个空格合并为一个
@@ -693,8 +693,9 @@ export class DictionaryReplacer {
             case 'jsdoc-comment':
                 return 'documentation';
             case 'multi-line-star':
-            case 'html-comment':
                 return 'block';
+            case 'html-comment':
+                return 'html';
             default:
                 return 'line';
         }
