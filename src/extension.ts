@@ -5,14 +5,14 @@
 import * as vscode from 'vscode';
 
 // 导入所有模块
-import { HistoryManager } from './historyManager';
-import { CommentDetector } from './commentDetector';
-import { CommentScanner } from './commentScanner';
-import { CommentReplacer } from './commentReplacer';
-import { DictionaryReplacer } from './dictionaryReplacer';
-import { CommentHider } from './commentHider';
-import { AIReplacer } from './aiReplacer';
-import { ToggleManager } from './toggleManager';
+import { HistoryManager } from './manager/historyManager';
+import { CommentDetector } from './comment/commentDetector';
+import { CommentScanner } from './comment/commentScanner';
+import { CommentReplacer } from './replacer/commentReplacer';
+import { DictionaryReplacer } from './replacer/dictionaryReplacer';
+import { CommentHider } from './comment/commentHider';
+import { AIReplacer } from './replacer/aiReplacer';
+import { ToggleManager } from './manager/toggleManager';
 import { CommandRegistrar } from './commands';
 
 // 全局实例

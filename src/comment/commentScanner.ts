@@ -5,7 +5,7 @@
  */
 import * as vscode from 'vscode';
 import { CommentDetector } from './commentDetector';
-import { SupportedLanguage, CommentFormat } from './types';
+import { SupportedLanguage, CommentFormat } from '../types';
 
 /**
  * 扫描到的注释项接口

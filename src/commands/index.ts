@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
-import { CommentReplacer } from '../commentReplacer';
-import { DictionaryReplacer } from '../dictionaryReplacer';
-import { CommentDetector } from '../commentDetector';
-import { CommentHider } from '../commentHider';
-import { AIReplacer } from '../aiReplacer';
-import { CommentScanner } from '../commentScanner';
-import { ToggleManager } from '../toggleManager';
-import { HistoryManager } from '../historyManager';
+import { CommentReplacer } from '../replacer/commentReplacer';
+import { DictionaryReplacer } from '../replacer/dictionaryReplacer';
+import { CommentDetector } from '../comment/commentDetector';
+import { CommentHider } from '../comment/commentHider';
+import { AIReplacer } from '../replacer/aiReplacer';
+import { CommentScanner } from '../comment/commentScanner';
+import { ToggleManager } from '../manager/toggleManager';
+import { HistoryManager } from '../manager/historyManager';
 
 /**
  * 命令注册器

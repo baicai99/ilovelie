@@ -4,11 +4,11 @@
  */
 import * as vscode from 'vscode';
 import OpenAI from 'openai';
-import { CommentDetector } from './commentDetector';
-import { CommentScanner, ScannedComment, ScanResult } from './commentScanner';
-import { HistoryManager } from './historyManager';
-import { HistoryRecord } from './types';
-import { ToggleManager } from './toggleManager';
+import { CommentDetector } from '../comment/commentDetector';
+import { CommentScanner, ScannedComment, ScanResult } from '../comment/commentScanner';
+import { HistoryManager } from '../manager/historyManager';
+import { HistoryRecord } from '../types';
+import { ToggleManager } from '../manager/toggleManager';
 
 export interface AIReplaceResult {
     success: boolean;

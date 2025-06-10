@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { CommentDetector } from '../commentDetector';
+import { CommentDetector } from '../comment/commentDetector';
 
 describe('CommentDetector', () => {
   const detector = new CommentDetector();

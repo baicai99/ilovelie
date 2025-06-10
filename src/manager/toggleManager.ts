@@ -3,10 +3,10 @@
  * 负责管理文档的真话假话状态切换
  */
 import * as vscode from 'vscode';
-import { TruthToggleState, ToggleStateInfo, ToggleResult, ScannedComment } from './types';
+import { TruthToggleState, ToggleStateInfo, ToggleResult, ScannedComment } from '../types';
 import { HistoryManager } from './historyManager';
-import { CommentScanner } from './commentScanner';
-import { normalizeComment } from './commentUtils';
+import { CommentScanner } from '../comment/commentScanner';
+import { normalizeComment } from '../comment/commentUtils';
 
 export class ToggleManager {
     private historyManager: HistoryManager;
