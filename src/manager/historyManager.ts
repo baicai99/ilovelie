@@ -117,6 +117,19 @@ export class HistoryManager {
     return this.records.filter(r => r.filePath === filePath);
   }
 
+  /**
+   * Clear all records associated with a file.
+   */
+  public clearRecordsForFile(filePath: string): { success: boolean; clearedCount: number } {
+    const before = this.records.length;
+    this.records = this.records.filter(r => r.filePath !== filePath);
+    const cleared = before - this.records.length;
+    if (cleared > 0) {
+      this.save();
+    }
+    return { success: true, clearedCount: cleared };
+  }
+
   /** Remove record by id. */
   public removeRecordById(id: string): boolean {
     const idx = this.records.findIndex(r => r.id === id);
