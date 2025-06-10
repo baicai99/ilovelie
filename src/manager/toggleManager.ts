@@ -13,7 +13,11 @@ export class ToggleManager {
     private commentScanner: CommentScanner;
     private documentStates: Map<string, ToggleStateInfo> = new Map();
     private statusBarItem: vscode.StatusBarItem;
-    private extensionContext: vscode.ExtensionContext | null = null; constructor(historyManager: HistoryManager, commentScanner: CommentScanner) {
+    private extensionContext: vscode.ExtensionContext | null = null;
+    /** 用于串行化切换操作的锁 */
+    private toggleLock: Promise<void> = Promise.resolve();
+
+    constructor(historyManager: HistoryManager, commentScanner: CommentScanner) {
         console.log('[ToggleManager] 构造函数开始');
         this.historyManager = historyManager;
         this.commentScanner = commentScanner;
@@ -71,6 +75,23 @@ export class ToggleManager {
      * 切换当前文档的真话假话状态
      */
     public async toggleTruthState(): Promise<ToggleResult> {
+        console.log('[DEBUG] 请求切换真话假话状态');
+        const previousLock = this.toggleLock;
+        let releaseLock: () => void;
+        this.toggleLock = new Promise(resolve => {
+            releaseLock = resolve;
+        });
+        await previousLock;
+        try {
+            console.log('[DEBUG] 获得切换锁，开始执行');
+            return await this.performToggleTruthState();
+        } finally {
+            console.log('[DEBUG] 释放切换锁');
+            releaseLock();
+        }
+    }
+
+    private async performToggleTruthState(): Promise<ToggleResult> {
         console.log(`[DEBUG] 开始切换真话假话状态`);
 
         const editor = vscode.window.activeTextEditor;
