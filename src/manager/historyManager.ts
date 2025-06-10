@@ -1,28 +1,37 @@
 import * as vscode from 'vscode';
 import { HistoryRecord } from '../types';
 
+// 创建输出通道用于调试日志
+const outputChannel = vscode.window.createOutputChannel('I Love Lie - History Manager');
+
 /**
- * Simple history manager storing changes per file.
+ * 简单的历史管理器，按文件存储更改。
  */
 export class HistoryManager {
   private records: HistoryRecord[] = [];
   private context?: vscode.ExtensionContext;
-  private sessions: Map<string, string> = new Map();
-
-  /** Initialize manager and load persisted history. */
+  private sessions: Map<string, string> = new Map();  /** 初始化管理器并加载持久化的历史记录。 */
   public initialize(context: vscode.ExtensionContext): void {
+    outputChannel.appendLine(`[HistoryManager] 初始化开始`);
     this.context = context;
     const saved = context.globalState.get<HistoryRecord[]>('changeHistory', []);
     this.records = saved ?? [];
+    outputChannel.appendLine(`[HistoryManager] 加载了 ${this.records.length} 条历史记录`);
   }
-
   /** Start a lie session for a file and return session id. */
   public startLieSession(filePath: string, fileText: string): string {
+    outputChannel.appendLine(`[HistoryManager] 开始假话会话: ${filePath}`);
     const id = this.generateId();
     this.sessions.set(filePath, id);
+    outputChannel.appendLine(`[HistoryManager] 生成会话ID: ${id}`);
 
     // remove any previous records for this file so only the latest session is kept
+    const beforeCount = this.records.length;
     this.records = this.records.filter(r => r.filePath !== filePath);
+    const removedCount = beforeCount - this.records.length;
+    if (removedCount > 0) {
+      outputChannel.appendLine(`[HistoryManager] 清理了 ${removedCount} 条旧记录`);
+    }
 
     // create a snapshot record so we can restore the file later
     const snapshotRecord: HistoryRecord = {
@@ -40,6 +49,7 @@ export class HistoryManager {
       fileSnapshot: fileText,
     };
     this.records.push(snapshotRecord);
+    outputChannel.appendLine(`[HistoryManager] 创建文件快照，长度: ${fileText.length}`);
     this.save();
 
     return id;
