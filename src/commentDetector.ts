@@ -34,7 +34,8 @@ export class CommentDetector {
             case 'css':
             case 'scss':
             case 'less':
-                return this.isMultiLineComment(trimmedText); default:
+                return this.isMultiLineComment(trimmedText);
+            default:
                 // 默认检测常见的注释格式
                 return this.isSlashComment(trimmedText) ||
                     this.isHashComment(trimmedText) ||
@@ -42,7 +43,8 @@ export class CommentDetector {
                     this.isMultiLineComment(trimmedText) ||
                     this.isHtmlComment(trimmedText);
         }
-    }    /**
+    }
+    /**
      * 获取注释格式类型
      */
     public getCommentFormat(text: string, languageId: string): CommentFormat {
@@ -146,7 +148,8 @@ export class CommentDetector {
      */
     private isHashComment(text: string): boolean {
         return text.startsWith('#');
-    }    /**
+    }
+    /**
      * 检测是否为多行注释
      */
     private isMultiLineComment(text: string): boolean {
@@ -158,12 +161,14 @@ export class CommentDetector {
      */
     private isJSDocComment(text: string): boolean {
         return text.startsWith('/**') && text.endsWith('*/');
-    }    /**
+    }
+    /**
      * 检测是否为HTML注释 <!-- -->
      */
     private isHtmlComment(text: string): boolean {
         return text.startsWith('<!--') && text.endsWith('-->');
-    }    /**
+    }
+    /**
      * 检测行是否为单行注释
      * 更严格的检查，确保注释符在行的有效位置，避免误识别代码
      * 支持行尾注释和行首注释
@@ -482,7 +487,8 @@ export class CommentDetector {
             return 'html';
         }
         return 'line';
-    }    /**
+    }
+    /**
      * 检测文档中的所有注释
      */
     public detectComments(document: vscode.TextDocument): CommentInfo[] {
