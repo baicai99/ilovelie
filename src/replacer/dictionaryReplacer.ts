@@ -127,7 +127,7 @@ export class DictionaryReplacer {
 
         if (success && totalReplacedCount > 0) {
             // 通知toggle manager状态已更新
-            this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
+            this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
 
             // 构建详细的完成消息
             let message = `字典替换完成！共替换了 ${totalReplacedCount} 个注释`;
@@ -355,7 +355,7 @@ export class DictionaryReplacer {
             });
         }); if (success && replacedCount > 0) {
             // 通知toggle manager状态已更新
-            this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
+            this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
             vscode.window.showInformationMessage(
                 `选择性字典替换完成！共替换了 ${replacedCount} 个注释。`
             );
@@ -507,7 +507,7 @@ export class DictionaryReplacer {
 
         if (success && replacedCount > 0) {
             // 通知toggle manager状态已更新
-            this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
+            this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
 
             // 只有在showMessage为true时才显示消息
             if (showMessage) {
@@ -576,7 +576,7 @@ export class DictionaryReplacer {
             }
         }); if (success) {
             // 通知toggle manager状态已更新
-            this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
+            this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
             vscode.window.showInformationMessage(
                 `随机替换完成！成功替换了 ${replacedCount} 条注释`
             );
@@ -651,7 +651,7 @@ export class DictionaryReplacer {
                 }
             }); if (success) {
                 // 通知toggle manager状态已更新
-                this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
+                this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
                 vscode.window.showInformationMessage(
                     `手动替换完成！成功替换了 ${replacedCount} 条注释`
                 );

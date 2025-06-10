@@ -118,7 +118,7 @@ export class CommandRegistrar {
         const onDidCloseDocument = vscode.workspace.onDidCloseTextDocument((document) => {
             this.commentHider.handleDocumentClose(document);
             // 清理toggle状态
-            this.toggleManager.cleanupDocumentState(document.uri.toString());
+            this.toggleManager.cleanupDocumentState(document.uri.fsPath);
         });
 
         context.subscriptions.push(onDidCloseDocument);
@@ -307,7 +307,7 @@ export class CommandRegistrar {
                 return;
             }
 
-            const documentUri = editor.document.uri.toString();
+            const documentUri = editor.document.uri.fsPath;
 
             // 获取当前文件的历史记录数量
             const records = this.historyManager.getRecordsForFile(documentUri);

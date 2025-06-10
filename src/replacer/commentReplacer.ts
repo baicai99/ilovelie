@@ -122,7 +122,7 @@ export class CommentReplacer {
 
                 // 通知状态管理器有新的撒谎记录
                 if (this.toggleManager) {
-                    this.toggleManager.notifyLiesAdded(editor.document.uri.toString());
+                    this.toggleManager.notifyLiesAdded(editor.document.uri.fsPath);
                 }
 
                 vscode.window.showInformationMessage('注释替换成功！你已经成功撒谎了 😈');
@@ -202,7 +202,7 @@ export class CommentReplacer {
 
                 // 通知状态管理器有新的撒谎记录
                 if (this.toggleManager) {
-                    this.toggleManager.notifyLiesAdded(editor.document.uri.toString());
+                    this.toggleManager.notifyLiesAdded(editor.document.uri.fsPath);
                 }
 
                 vscode.window.showInformationMessage('注释替换成功！你已经成功撒谎了 😈');
@@ -324,7 +324,7 @@ export class CommentReplacer {
 
                 // 通知状态管理器有新的撒谎记录
                 if (this.toggleManager) {
-                    this.toggleManager.notifyLiesAdded(editor.document.uri.toString());
+                    this.toggleManager.notifyLiesAdded(editor.document.uri.fsPath);
                 }
 
                 vscode.window.showInformationMessage('注释替换成功！你已经成功撒谎了 😈');

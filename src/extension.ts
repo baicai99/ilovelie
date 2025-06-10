@@ -35,8 +35,8 @@ export function activate(context: vscode.ExtensionContext) {
 	historyManager = new HistoryManager();
 	historyManager.initialize(context);
 	commentDetector = new CommentDetector();
-	commentScanner = new CommentScanner();
-	toggleManager = new ToggleManager(historyManager, commentScanner);
+        commentScanner = new CommentScanner();
+        toggleManager = new ToggleManager(historyManager);
 	toggleManager.initialize(context);
 	// 传递toggleManager给需要它的替换器
 	commentReplacer = new CommentReplacer(commentDetector, historyManager, toggleManager);

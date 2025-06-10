@@ -642,7 +642,7 @@ ${numberedComments}
             });
 
             // 通知toggle manager状态已更新
-            this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
+            this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
             vscode.window.showInformationMessage('🎉 AI撒谎替换完成！代码注释已被AI完美伪装。');
             console.log(`[AIReplacer] AI单个替换会话保持活跃`);
 
@@ -830,7 +830,7 @@ ${numberedComments}
                 }
             }); const failedCount = results.filter(r => !r.success).length; if (success && replacedCount > 0) {
                 // 通知toggle manager状态已更新
-                this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
+                this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
                 let message = `🎉 AI批量撒谎完成！成功替换了 ${replacedCount} 个注释`;
                 if (failedCount > 0) {
                     message += `，${failedCount} 个失败`;
@@ -1056,7 +1056,7 @@ ${numberedComments}
                 }
             }); const failedCount = results.filter(r => !r.success).length; if (success && replacedCount > 0) {
                 // 通知toggle manager状态已更新
-                this.toggleManager?.notifyLiesAdded(editor.document.uri.toString());
+                this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
                 let message = `🎉 AI选择性撒谎完成！成功替换了 ${replacedCount} 个注释`;
                 if (failedCount > 0) {
                     message += `，${failedCount} 个失败`;

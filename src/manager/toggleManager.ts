@@ -27,11 +27,11 @@ export class ToggleManager {
     if (!editor) {
       return { success: false, newState: TruthToggleState.TRUTH, affectedComments: 0, errorMessage: '没有活动的编辑器' };
     }
-    const uri = editor.document.uri.toString();
-    const info = this.states.get(uri);
+    const filePath = editor.document.uri.fsPath;
+    const info = this.states.get(filePath);
     const newState = info?.currentState === TruthToggleState.LIE ? TruthToggleState.TRUTH : TruthToggleState.LIE;
 
-    const records = this.history.getRecordsForFile(uri);
+    const records = this.history.getRecordsForFile(filePath);
     let affected = 0;
     if (records.length > 0) {
       await editor.edit(builder => {
@@ -52,10 +52,10 @@ export class ToggleManager {
       });
     }
 
-    this.states.set(uri, {
+    this.states.set(filePath, {
       currentState: newState,
       lastToggleTime: Date.now(),
-      documentUri: uri,
+        documentUri: filePath,
       hasLies: records.length > 0,
     });
     this.updateStatusBar();
@@ -63,23 +63,41 @@ export class ToggleManager {
   }
 
   /** Called when a file has new lie records added. */
-  public async notifyLiesAdded(documentUri: string): Promise<void> {
-    const state = this.states.get(documentUri) || {
+  public async notifyLiesAdded(filePath: string): Promise<void> {
+    const state = this.states.get(filePath) || {
       currentState: TruthToggleState.LIE,
       lastToggleTime: Date.now(),
-      documentUri,
+      documentUri: filePath,
       hasLies: true,
     };
     state.hasLies = true;
     state.currentState = TruthToggleState.LIE;
     state.lastToggleTime = Date.now();
-    this.states.set(documentUri, state);
+    this.states.set(filePath, state);
     this.updateStatusBar();
   }
 
   /** Clean up when document closed. */
-  public cleanupDocumentState(documentUri: string): void {
-    this.states.delete(documentUri);
+  public cleanupDocumentState(filePath: string): void {
+    this.states.delete(filePath);
+  }
+
+  /** Refresh state information for a document, e.g. after clearing history. */
+  public async refreshDocumentState(filePath: string): Promise<void> {
+    const records = this.history.getRecordsForFile(filePath);
+    const state = this.states.get(filePath) || {
+      currentState: TruthToggleState.TRUTH,
+      lastToggleTime: Date.now(),
+      documentUri: filePath,
+      hasLies: false,
+    };
+    state.hasLies = records.length > 0;
+    if (!state.hasLies) {
+      state.currentState = TruthToggleState.TRUTH;
+    }
+    state.lastToggleTime = Date.now();
+    this.states.set(filePath, state);
+    this.updateStatusBar();
   }
 
   /** Show current status in an information message. */
@@ -89,8 +107,8 @@ export class ToggleManager {
       vscode.window.showInformationMessage('没有活动的编辑器');
       return;
     }
-    const uri = editor.document.uri.toString();
-    const info = this.states.get(uri);
+    const filePath = editor.document.uri.fsPath;
+    const info = this.states.get(filePath);
     const state = info?.currentState || TruthToggleState.TRUTH;
     const text = state === TruthToggleState.TRUTH ? '真话模式' : '假话模式';
     vscode.window.showInformationMessage(`当前状态: ${text}`);
@@ -102,8 +120,8 @@ export class ToggleManager {
       this.bar.hide();
       return;
     }
-    const uri = editor.document.uri.toString();
-    const info = this.states.get(uri);
+    const filePath = editor.document.uri.fsPath;
+    const info = this.states.get(filePath);
     const state = info?.currentState || TruthToggleState.TRUTH;
     this.bar.text = state === TruthToggleState.TRUTH ? '$(eye) 真话' : '$(eye-closed) 假话';
     this.bar.show();
