@@ -21,6 +21,9 @@ export class HistoryManager {
     const id = this.generateId();
     this.sessions.set(filePath, id);
 
+    // remove any previous records for this file so only the latest session is kept
+    this.records = this.records.filter(r => r.filePath !== filePath);
+
     // create a snapshot record so we can restore the file later
     const snapshotRecord: HistoryRecord = {
       id: this.generateId(),
