@@ -401,11 +401,11 @@ export class AIReplacer {
             .replace(/^\/\/+\s*/, '')     // 移除开头的 //
             .replace(/^\/\*+\s*/, '')     // 移除开头的 /*
             .replace(/\s*\*+\/$/, '')     // 移除结尾的 */
-            .replace(/^<!--\s*/, '')      // 秘除开头的 <!--
-            .replace(/\s*-->$/, '')       // 秘除结尾的 -->
+            .replace(/^<!--\s*/, '')      // 移除开头的 <!--
+            .replace(/\s*-->$/, '')       // 移除结尾的 -->
             .replace(/^#+\s*/, '')        // 移除开头的 #
             // 移除中间可能出现的注释符号
-            .replace(/\/\/+/g, '')        // 秼除所有 //
+            .replace(/\/\/+/g, '')        // 移除所有 //
             .replace(/\/\*[\s\S]*?\*\//g, '') // 移除所有 /* */
             .replace(/<!--[\s\S]*?-->/g, '') // 移除所有 <!-- -->
             .trim();
@@ -1141,8 +1141,9 @@ ${numberedComments}
             case 'jsdoc-comment':
                 return 'documentation';
             case 'multi-line-star':
-            case 'html-comment':
                 return 'block';
+            case 'html-comment':
+                return 'html';
             default:
                 return 'line';
         }

@@ -15,7 +15,7 @@
 
 1. **Fork 并克隆仓库**
    ```bash
-   git clone https://github.com/yourusername/ilovelie.git
+   git clone https://github.com/baicai99/ilovelie.git
    cd ilovelie
    ```
 

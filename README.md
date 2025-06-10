@@ -357,7 +357,7 @@ function initDatabase() {
 
 - 暂无已知问题
 
-如果您发现任何问题，请在 [GitHub Issues](https://github.com/yourusername/ilovelie/issues) 中报告。
+如果您发现任何问题，请在 [GitHub Issues](https://github.com/baicai99/ilovelie/issues) 中报告。
 
 ## 📄 更新日志
 
