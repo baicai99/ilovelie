@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { HistoryRecord } from './types';
-import { normalizeComment } from './commentUtils';
+import { HistoryRecord } from '../types';
+import { normalizeComment } from '../comment/commentUtils';
 
 /**
  * 历史记录管理器

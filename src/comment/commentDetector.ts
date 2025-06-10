@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SupportedLanguage, CommentFormat, CommentInfo } from './types';
+import { SupportedLanguage, CommentFormat, CommentInfo } from '../types';
 
 /**
  * 注释检测和处理器

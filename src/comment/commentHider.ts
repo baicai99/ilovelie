@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { CommentDetector } from './commentDetector';
 import { CommentScanner, ScannedComment, ScanResult } from './commentScanner';
-import { HistoryManager } from './historyManager';
-import { HistoryRecord } from './types';
+import { HistoryManager } from '../manager/historyManager';
+import { HistoryRecord } from '../types';
 
 /**
  * 注释隐藏管理器

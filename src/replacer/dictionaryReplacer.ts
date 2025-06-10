@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { HistoryRecord, SingleReplaceResult } from './types';
-import { CommentDetector } from './commentDetector';
-import { CommentScanner } from './commentScanner';
-import { HistoryManager } from './historyManager';
-import { ToggleManager } from './toggleManager';
-import { createLiesDictionary, getRandomLie, findMatchingLie } from './liesDictionary';
+import { HistoryRecord, SingleReplaceResult } from '../types';
+import { CommentDetector } from '../comment/commentDetector';
+import { CommentScanner } from '../comment/commentScanner';
+import { HistoryManager } from '../manager/historyManager';
+import { ToggleManager } from '../manager/toggleManager';
+import { createLiesDictionary, getRandomLie, findMatchingLie } from '../data/liesDictionary';
 
 /**
  * 字典替换器

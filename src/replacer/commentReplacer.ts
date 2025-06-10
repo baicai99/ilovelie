@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { HistoryRecord, ReplaceResult } from './types';
-import { CommentDetector } from './commentDetector';
-import { CommentScanner } from './commentScanner';
-import { HistoryManager } from './historyManager';
-import { ToggleManager } from './toggleManager';
+import { HistoryRecord, ReplaceResult } from '../types';
+import { CommentDetector } from '../comment/commentDetector';
+import { CommentScanner } from '../comment/commentScanner';
+import { HistoryManager } from '../manager/historyManager';
+import { ToggleManager } from '../manager/toggleManager';
 
 /**
  * 注释替换器
