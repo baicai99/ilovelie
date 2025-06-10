@@ -167,12 +167,13 @@ export class HistoryManager {
       if (!existing || (r.versionNumber || 1) > (existing.versionNumber || 1)) {
         map.set(key, r);
       }
-    }
-    const unique = Array.from(map.values());
+    } const unique = Array.from(map.values());
     const removed = related.length - unique.length;
     this.records = this.records.filter(r => r.filePath !== filePath);
     this.records.push(...unique);
-    if (removed > 0) this.save();
+    if (removed > 0) {
+      this.save();
+    }
     return removed;
   }
 }
