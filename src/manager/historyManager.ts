@@ -132,6 +132,8 @@ export class HistoryManager {
         }
 
         this.changeHistory.push(record);
+        // 移除同一文件可能出现的重复记录，避免切换次数增多导致记录膨胀
+        this.cleanupDuplicateRecords(record.filePath);
         this.saveHistory();
         console.log(`[DEBUG] 添加历史记录: ${record.id}, 会话: ${record.sessionId}, 活跃: ${record.isActive}, 版本: ${record.versionNumber}`);
     }
@@ -238,6 +240,38 @@ export class HistoryManager {
     }
 
     /**
+     * 清理指定文件中重复的历史记录，只保留最高版本
+     */
+    public cleanupDuplicateRecords(filePath: string): number {
+        const records = this.changeHistory.filter(r => r.filePath === filePath);
+        if (records.length === 0) {
+            return 0;
+        }
+
+        const uniqueMap = new Map<string, HistoryRecord>();
+        for (const record of records) {
+            const key = `${record.startPosition.line}:${record.startPosition.character}-` +
+                `${record.endPosition.line}:${record.endPosition.character}`;
+            const existing = uniqueMap.get(key);
+            if (!existing || (record.versionNumber || 1) > (existing.versionNumber || 1)) {
+                uniqueMap.set(key, record);
+            }
+        }
+
+        const uniqueRecords = Array.from(uniqueMap.values());
+        const removed = records.length - uniqueRecords.length;
+
+        this.changeHistory = this.changeHistory.filter(r => r.filePath !== filePath);
+        this.changeHistory.push(...uniqueRecords);
+
+        if (removed > 0) {
+            this.saveHistory();
+        }
+
+        return removed;
+    }
+
+    /**
      * 保存历史记录到持久化存储
      */
     private saveHistory(): void {
@@ -318,6 +352,8 @@ export class HistoryManager {
         });
 
         console.log(`[DEBUG] 重新激活了 ${reactivatedCount} 条记录`);
+        // 清理可能存在的重复记录
+        this.cleanupDuplicateRecords(filePath);
         this.saveHistory();
     }    /**
      * 临时恢复指定文件的所有记录（用于切换显示，不删除历史记录）
