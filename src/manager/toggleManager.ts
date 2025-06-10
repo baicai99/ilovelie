@@ -82,7 +82,7 @@ export class ToggleManager {
         builder.replace(fullRange, targetText);
       });
       if (success) {
-        affected = records.length;
+        affected = records.filter(r => !r.fileSnapshot).length;
       }
     } else if (records.length > 0) {
       await editor.edit(builder => {
@@ -106,7 +106,7 @@ export class ToggleManager {
     this.states.set(filePath, {
       currentState: newState,
       lastToggleTime: Date.now(),
-        documentUri: filePath,
+      documentUri: filePath,
       hasLies: records.length > 0,
     });
     this.updateStatusBar();
