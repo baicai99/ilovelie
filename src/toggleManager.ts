@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { TruthToggleState, ToggleStateInfo, ToggleResult, ScannedComment } from './types';
 import { HistoryManager } from './historyManager';
 import { CommentScanner } from './commentScanner';
+import { normalizeComment } from './commentUtils';
 
 export class ToggleManager {
     private historyManager: HistoryManager;
@@ -337,13 +338,17 @@ export class ToggleManager {
                 const currentTextInDocument = editor.document.getText(range);
                 console.log(`[ToggleManager] 记录 ${record.id} - 当前文本: "${currentTextInDocument}", 原始文本: "${record.originalText}", 新文本: "${record.newText}"`);
 
+                const normalizedCurrent = normalizeComment(currentTextInDocument);
+                const normalizedOriginal = normalizeComment(record.originalText);
+                const normalizedNew = normalizeComment(record.newText);
+
                 // 更精确的文本匹配：只有当前文本确实是原始文本（真话）时才应用假话替换
-                if (currentTextInDocument === record.originalText) {
+                if (normalizedCurrent === normalizedOriginal) {
                     // 当前文本是真话，应用假话替换
                     editOperations.push({ range, newText: record.newText, recordId: record.id });
                     processedRanges.add(rangeKey);
                     console.log(`[ToggleManager] 记录 ${record.id} 添加到编辑操作队列 (真话->假话)`);
-                } else if (currentTextInDocument === record.newText) {
+                } else if (normalizedCurrent === normalizedNew) {
                     // 当前文本已经是假话，不需要编辑但标记范围为已处理
                     processedRanges.add(rangeKey);
                     console.log(`[ToggleManager] 记录 ${record.id} 当前已是假话，跳过编辑但标记范围已处理`);
@@ -957,8 +962,10 @@ export class ToggleManager {
                     );
 
                     const currentText = document.getText(range);
+                    const normalizedCurrent = normalizeComment(currentText);
+                    const normalizedNew = normalizeComment(record.newText);
 
-                    if (currentText === record.newText) {
+                    if (normalizedCurrent === normalizedNew) {
                         validCount++;
                         console.log(`[ToggleManager] 诊断 - 记录 ${record.id} 文本匹配，可以恢复`);
                     } else {

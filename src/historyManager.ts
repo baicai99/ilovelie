@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { HistoryRecord } from './types';
+import { normalizeComment } from './commentUtils';
 
 /**
  * 历史记录管理器
@@ -373,11 +374,15 @@ export class HistoryManager {
                         continue;
                     }
 
-                    // 检查当前文本是否匹配记录中的新文本
+                    // 检查当前文本是否匹配记录中的新文本或原始文本(规范化比较)
                     const currentText = document.getText(range);
                     console.log(`[DEBUG] 记录 ${record.id} - 当前文本: "${currentText}", 期望文本: "${record.newText}", 恢复文本: "${record.originalText}"`);
 
-                    if (currentText === record.newText) {
+                    const normalizedCurrent = normalizeComment(currentText);
+                    const normalizedNew = normalizeComment(record.newText);
+                    const normalizedOriginal = normalizeComment(record.originalText);
+
+                    if (normalizedCurrent === normalizedNew) {
                         // 检查重叠
                         const hasOverlap = editOperations.some(existing => {
                             return range.intersection(existing.range) !== undefined;
@@ -390,6 +395,8 @@ export class HistoryManager {
 
                         editOperations.push({ range, originalText: record.originalText, recordId: record.id });
                         console.log(`[DEBUG] 记录 ${record.id} 准备临时恢复`);
+                    } else if (normalizedCurrent === normalizedOriginal) {
+                        console.log(`[DEBUG] 记录 ${record.id} 已处于原始状态，跳过`);
                     } else {
                         console.log(`[DEBUG] 记录 ${record.id} 文本不匹配，跳过恢复`);
                     }
@@ -515,11 +522,15 @@ export class HistoryManager {
                         continue;
                     }
 
-                    // 检查当前文本是否匹配记录中的新文本
+                    // 检查当前文本是否匹配记录中的新文本或原始文本(规范化比较)
                     const currentText = document.getText(range);
                     console.log(`[DEBUG] 记录 ${record.id} - 当前文本: "${currentText}", 期望文本: "${record.newText}", 恢复文本: "${record.originalText}"`);
 
-                    if (currentText === record.newText) {
+                    const normalizedCurrent = normalizeComment(currentText);
+                    const normalizedNew = normalizeComment(record.newText);
+                    const normalizedOriginal = normalizeComment(record.originalText);
+
+                    if (normalizedCurrent === normalizedNew) {
                         // 检查重叠
                         const hasOverlap = editOperations.some(existing => {
                             return range.intersection(existing.range) !== undefined;
@@ -533,6 +544,8 @@ export class HistoryManager {
                         editOperations.push({ range, originalText: record.originalText, recordId: record.id });
                         recordsToRemove.push(record.id);
                         console.log(`[DEBUG] 记录 ${record.id} 准备恢复`);
+                    } else if (normalizedCurrent === normalizedOriginal) {
+                        console.log(`[DEBUG] 记录 ${record.id} 已处于原始状态，跳过`);
                     } else {
                         console.log(`[DEBUG] 记录 ${record.id} 文本不匹配，跳过恢复`);
                     }
