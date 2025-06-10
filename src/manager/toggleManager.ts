@@ -40,16 +40,27 @@ export class ToggleManager {
     result += snapshot.slice(last);
     return result;
   }
-
   constructor(history: HistoryManager) {
     this.history = history;
     this.bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     this.bar.command = 'ilovelie.toggleTruthState';
-    this.bar.show();
+    this.bar.tooltip = '点击切换真话/假话模式';
+    // 初始显示状态栏
+    this.updateStatusBar();
   }
 
   public initialize(context: vscode.ExtensionContext): void {
-    // nothing to load for now
+    // 注册编辑器切换事件，确保状态栏始终显示正确的状态
+    const onDidChangeActiveEditor = vscode.window.onDidChangeActiveTextEditor(() => {
+      this.updateStatusBar();
+    });
+
+    context.subscriptions.push(onDidChangeActiveEditor);
+
+    // 如果当前有活动编辑器，立即更新状态栏
+    if (vscode.window.activeTextEditor) {
+      this.updateStatusBar();
+    }
   }
 
   /** Toggle current document state. */
@@ -164,11 +175,12 @@ export class ToggleManager {
     const text = state === TruthToggleState.TRUTH ? '真话模式' : '假话模式';
     vscode.window.showInformationMessage(`当前状态: ${text}`);
   }
-
   private updateStatusBar(): void {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-      this.bar.hide();
+      // 即使没有活动编辑器，也显示默认的真话模式状态
+      this.bar.text = '$(eye) 真话';
+      this.bar.show();
       return;
     }
     const filePath = editor.document.uri.fsPath;
@@ -177,7 +189,6 @@ export class ToggleManager {
     this.bar.text = state === TruthToggleState.TRUTH ? '$(eye) 真话' : '$(eye-closed) 假话';
     this.bar.show();
   }
-
   public dispose(): void {
     this.bar.dispose();
   }
