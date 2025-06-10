@@ -231,40 +231,6 @@ export class CommentScanner {
     }
 
     /**
-     * 获取扫描统计信息
-     * @param scanResult 扫描结果
-     * @returns 统计信息
-     */
-    public getStatistics(scanResult: ScanResult): {
-        totalComments: number;
-        singleLineComments: number;
-        multiLineComments: number;
-        formatBreakdown: Record<CommentFormat, number>;
-    } {
-        const stats = {
-            totalComments: scanResult.totalComments,
-            singleLineComments: 0,
-            multiLineComments: 0,
-            formatBreakdown: {} as Record<CommentFormat, number>
-        };
-
-        scanResult.comments.forEach(comment => {
-            // 统计格式
-            if (!stats.formatBreakdown[comment.format]) {
-                stats.formatBreakdown[comment.format] = 0;
-            }
-            stats.formatBreakdown[comment.format]++;            // 统计单行/多行
-            if (comment.format === 'multi-line-star' || comment.format === 'jsdoc-comment') {
-                stats.multiLineComments++;
-            } else {
-                stats.singleLineComments++;
-            }
-        });
-
-        return stats;
-    }
-
-    /**
      * 提取纯净的注释文本（去除注释符号）
      * @param commentText 原始注释文本
      * @param format 注释格式

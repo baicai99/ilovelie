@@ -52,26 +52,6 @@
         "category": "我爱撒谎"
       },
       {
-        "command": "ilovelie.smartReplaceComment",
-        "title": "智能注释替换",
-        "category": "我爱撒谎"
-      },
-      {
-        "command": "ilovelie.smartDictionaryReplace",
-        "title": "智能字典替换",
-        "category": "我爱撒谎"
-      },
-      {
-        "command": "ilovelie.scanComments",
-        "title": "扫描注释",
-        "category": "我爱撒谎"
-      },
-      {
-        "command": "ilovelie.showCommentStatistics",
-        "title": "注释统计",
-        "category": "我爱撒谎"
-      },
-      {
         "command": "ilovelie.toggleCommentVisibility",
         "title": "切换注释显示/隐藏",
         "category": "我爱撒谎"
@@ -131,28 +111,12 @@
           "group": "z_ilovelie@6"
         },
         {
-          "command": "ilovelie.smartReplaceComment",
-          "group": "z_ilovelie@7"
-        },
-        {
-          "command": "ilovelie.smartDictionaryReplace",
-          "group": "z_ilovelie@8"
-        },
-        {
           "command": "ilovelie.aiBatchReplaceComments",
           "group": "z_ilovelie@9"
         },
         {
           "command": "ilovelie.aiSelectiveReplaceComments",
           "group": "z_ilovelie@10"
-        },
-        {
-          "command": "ilovelie.scanComments",
-          "group": "z_ilovelie@11"
-        },
-        {
-          "command": "ilovelie.showCommentStatistics",
-          "group": "z_ilovelie@12"
         },
         {
           "command": "ilovelie.toggleCommentVisibility",

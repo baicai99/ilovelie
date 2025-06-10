@@ -365,68 +365,6 @@ export class DictionaryReplacer {
     }
 
     /**
-     * 使用扫描器进行智能字典替换
-     */
-    public async smartDictionaryReplaceComments(): Promise<void> {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showErrorMessage('请先打开一个文件！');
-            return;
-        }
-
-        try {
-            // 使用CommentScanner扫描所有注释
-            const scanResult = await this.commentScanner.scanActiveDocument();
-
-            if (!scanResult.success) {
-                vscode.window.showErrorMessage(`扫描注释失败: ${scanResult.errorMessage}`);
-                return;
-            }
-
-            if (scanResult.totalComments === 0) {
-                vscode.window.showInformationMessage('当前文档中没有找到注释');
-                return;
-            }
-
-            // 分析哪些注释可以进行字典替换
-            const replaceableComments = scanResult.comments.filter(comment => {
-                const lie = findMatchingLie(comment.cleanText, this.liesDictionary);
-                return lie !== null;
-            });
-
-            if (replaceableComments.length === 0) {
-                const action = await vscode.window.showInformationMessage(
-                    '没有找到可以进行字典替换的注释，是否使用随机替换？',
-                    '随机替换全部',
-                    '手动选择',
-                    '取消'
-                );
-
-                if (action === '随机替换全部') {
-                    await this.randomReplaceAllComments(scanResult);
-                } else if (action === '手动选择') {
-                    await this.manualSelectComments(scanResult);
-                }
-                return;
-            }
-
-            // 显示可替换的注释
-            const message = `找到 ${replaceableComments.length} 条可进行字典替换的注释，共 ${scanResult.totalComments} 条注释`;
-            const action = await vscode.window.showInformationMessage(
-                message,
-                '替换匹配的注释',
-                '查看详细信息',
-                '取消'
-            ); if (action === '替换匹配的注释') {
-                await this.executeSmartDictionaryReplace(replaceableComments, true);
-            } else if (action === '查看详细信息') {
-                await this.showReplaceableCommentsList(replaceableComments, scanResult.totalComments);
-            }
-
-        } catch (error) {
-            vscode.window.showErrorMessage(`智能字典替换时发生错误: ${error}`);
-        }
-    }    /**
      * 执行智能字典替换（重构版）
      * @param comments 要替换的注释列表
      * @param showMessage 是否显示完成消息，默认为false，避免重复显示
