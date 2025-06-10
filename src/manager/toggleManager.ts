@@ -30,14 +30,36 @@ export class ToggleManager {
     const uri = editor.document.uri.toString();
     const info = this.states.get(uri);
     const newState = info?.currentState === TruthToggleState.LIE ? TruthToggleState.TRUTH : TruthToggleState.LIE;
+
+    const records = this.history.getRecordsForFile(uri);
+    let affected = 0;
+    if (records.length > 0) {
+      await editor.edit(builder => {
+        for (const rec of records) {
+          const range = new vscode.Range(
+            rec.startPosition.line,
+            rec.startPosition.character,
+            rec.endPosition.line,
+            rec.endPosition.character
+          );
+          const targetText = newState === TruthToggleState.LIE ? rec.newText : rec.originalText;
+          const currentText = editor.document.getText(range);
+          if (currentText !== targetText) {
+            builder.replace(range, targetText);
+            affected++;
+          }
+        }
+      });
+    }
+
     this.states.set(uri, {
       currentState: newState,
       lastToggleTime: Date.now(),
       documentUri: uri,
-      hasLies: this.history.getRecordsForFile(uri).length > 0,
+      hasLies: records.length > 0,
     });
     this.updateStatusBar();
-    return { success: true, newState, affectedComments: 0 };
+    return { success: true, newState, affectedComments: affected };
   }
 
   /** Called when a file has new lie records added. */
