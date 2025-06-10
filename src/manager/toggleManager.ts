@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { TruthToggleState, ToggleStateInfo, ToggleResult } from '../types';
+import { TruthToggleState, ToggleStateInfo, ToggleResult, HistoryRecord } from '../types';
 import { HistoryManager } from './historyManager';
 
 /**
@@ -9,6 +9,37 @@ export class ToggleManager {
   private history: HistoryManager;
   private states: Map<string, ToggleStateInfo> = new Map();
   private bar: vscode.StatusBarItem;
+
+  /** Apply history records to a snapshot and return lied text */
+  private applyRecords(snapshot: string, records: HistoryRecord[]): string {
+    const lineOffsets: number[] = [];
+    let offset = 0;
+    const lines = snapshot.split(/\n/);
+    for (const line of lines) {
+      lineOffsets.push(offset);
+      offset += line.length + 1;
+    }
+
+    const sorted = records
+      .filter(r => !r.fileSnapshot)
+      .sort((a, b) => {
+        const sa = lineOffsets[a.startPosition.line] + a.startPosition.character;
+        const sb = lineOffsets[b.startPosition.line] + b.startPosition.character;
+        return sa - sb;
+      });
+
+    let result = '';
+    let last = 0;
+    for (const rec of sorted) {
+      const start = lineOffsets[rec.startPosition.line] + rec.startPosition.character;
+      const end = lineOffsets[rec.endPosition.line] + rec.endPosition.character;
+      result += snapshot.slice(last, start);
+      result += rec.newText;
+      last = end;
+    }
+    result += snapshot.slice(last);
+    return result;
+  }
 
   constructor(history: HistoryManager) {
     this.history = history;
@@ -32,8 +63,28 @@ export class ToggleManager {
     const newState = info?.currentState === TruthToggleState.LIE ? TruthToggleState.TRUTH : TruthToggleState.LIE;
 
     const records = this.history.getRecordsForFile(filePath);
+    const snapshotRecord = records
+      .filter(r => r.fileSnapshot)
+      .sort((a, b) => b.timestamp - a.timestamp)[0];
+    const snapshot = snapshotRecord?.fileSnapshot;
     let affected = 0;
-    if (records.length > 0) {
+
+    if (snapshot) {
+      const targetText = newState === TruthToggleState.LIE
+        ? this.applyRecords(snapshot, records)
+        : snapshot;
+
+      const success = await editor.edit(builder => {
+        const fullRange = new vscode.Range(
+          new vscode.Position(0, 0),
+          editor.document.lineAt(editor.document.lineCount - 1).range.end
+        );
+        builder.replace(fullRange, targetText);
+      });
+      if (success) {
+        affected = records.length;
+      }
+    } else if (records.length > 0) {
       await editor.edit(builder => {
         for (const rec of records) {
           const range = new vscode.Range(

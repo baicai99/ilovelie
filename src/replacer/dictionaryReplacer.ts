@@ -43,7 +43,7 @@ export class DictionaryReplacer {
 
         // 启动新的撒谎会话
         const filePath = editor.document.uri.fsPath;
-        const sessionId = this.historyManager.startLieSession(filePath);
+        const sessionId = this.historyManager.startLieSession(filePath, editor.document.getText());
         console.log(`[DictionaryReplacer] 开始新的撒谎会话: ${sessionId}`);
 
         // 使用CommentScanner检测当前文件中的所有注释

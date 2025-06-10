@@ -17,15 +17,44 @@ export class HistoryManager {
   }
 
   /** Start a lie session for a file and return session id. */
-  public startLieSession(filePath: string): string {
+  public startLieSession(filePath: string, fileText: string): string {
     const id = this.generateId();
     this.sessions.set(filePath, id);
+
+    // create a snapshot record so we can restore the file later
+    const snapshotRecord: HistoryRecord = {
+      id: this.generateId(),
+      filePath,
+      originalText: fileText,
+      newText: fileText,
+      timestamp: Date.now(),
+      type: 'session-start',
+      startPosition: { line: 0, character: 0 },
+      endPosition: { line: 0, character: 0 },
+      sessionId: id,
+      isActive: true,
+      versionNumber: 1,
+      fileSnapshot: fileText,
+    };
+    this.records.push(snapshotRecord);
+    this.save();
+
     return id;
   }
 
   /** End active lie session for file. */
   public endLieSession(filePath: string): void {
+    const sessionId = this.sessions.get(filePath);
+    if (sessionId) {
+      for (const record of this.records) {
+        if (record.sessionId === sessionId && record.isActive) {
+          record.isActive = false;
+          record.sessionEndTime = Date.now();
+        }
+      }
+    }
     this.sessions.delete(filePath);
+    this.save();
   }
 
   /** Check if file has active session. */
