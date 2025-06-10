@@ -14,8 +14,10 @@ npm install -g vsce
 - ✅ `CHANGELOG.md` - 包含版本更新信息
 - ✅ `LICENSE` - 包含许可证信息
 
-### 3. 运行完整测试
+### 3. 安装依赖并运行完整测试
+在全新的环境下，需要先安装开发依赖（其中包含 `@types/vscode`、`@types/node`、`@types/mocha` 等测试库），可以直接执行脚本：
 ```bash
+bash ./scripts/setup-tests.sh
 npm test
 ```
 

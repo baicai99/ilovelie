@@ -20,8 +20,9 @@
    ```
 
 2. **安装依赖**
+   运行脚本安装所有开发依赖（包括 `@types/vscode`、`@types/node`、`@types/mocha` 等测试库），以便在全新环境中顺利运行测试：
    ```bash
-   npm install
+   bash ./scripts/setup-tests.sh
    ```
 
 3. **启动开发模式**
