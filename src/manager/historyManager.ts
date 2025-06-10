@@ -330,8 +330,12 @@ export class HistoryManager {
             const editor = await vscode.window.showTextDocument(document);
 
             // 只获取活跃会话的记录
-            const records = this.getActiveRecordsForFile(documentUri);
+            let records = this.getActiveRecordsForFile(documentUri);
             console.log(`[DEBUG] 找到 ${records.length} 条活跃记录待临时恢复`);
+
+            // 对记录按位置去重，保留最高版本号
+            records = this.deduplicateRecords(records);
+            console.log(`[DEBUG] 去重后记录数量: ${records.length}`);
 
             if (records.length === 0) {
                 console.log(`[DEBUG] 没有找到活跃记录，可能该文件没有当前的撒谎会话`);
@@ -616,6 +620,23 @@ export class HistoryManager {
                 errorMessage: `恢复失败: ${error}`
             };
         }
+    }
+
+    /**
+     * 根据起始和结束位置去重记录，保留最高版本号
+     */
+    private deduplicateRecords(records: HistoryRecord[]): HistoryRecord[] {
+        const map = new Map<string, HistoryRecord>();
+
+        for (const record of records) {
+            const key = `${record.startPosition.line}:${record.startPosition.character}-${record.endPosition.line}:${record.endPosition.character}`;
+            const existing = map.get(key);
+            if (!existing || (record.versionNumber || 1) > (existing.versionNumber || 1)) {
+                map.set(key, record);
+            }
+        }
+
+        return Array.from(map.values());
     }
 
     /**
