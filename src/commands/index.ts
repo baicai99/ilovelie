@@ -323,7 +323,7 @@ export class CommandRegistrar {
             );
 
             if (confirm === '确定') {
-                const result = await this.historyManager.clearRecordsForFile(documentUri);
+                const result = this.historyManager.clearRecordsForFile(documentUri);
 
                 if (result.success) {
                     // 更新toggle状态
