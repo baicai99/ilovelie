@@ -45,6 +45,9 @@ export class CommentHider {
      * 隐藏当前文件的所有注释
      */
     private async hideComments(editor: vscode.TextEditor, filePath: string): Promise<void> {
+        // 记录快照以便后续恢复
+        this.historyManager.startLieSession(filePath, editor.document.getText());
+
         // 使用CommentScanner扫描当前文件中的所有注释
         const scanResult = await this.commentScanner.scanDocument(editor.document);
 
@@ -106,31 +109,28 @@ export class CommentHider {
             return;
         }
 
-        let restoredCount = 0;
+        // 查找会话快照进行整体恢复
+        const sessionId = this.historyManager.getCurrentSessionId(filePath);
+        const records = this.historyManager.getRecordsForFile(filePath);
+        const snapshot = records.find(r => r.sessionId === sessionId && r.fileSnapshot)?.fileSnapshot;
 
-        // 按行号排序，从前往后恢复
-        const sortedRecords = Array.from(fileHiddenComments.entries())
-            .sort(([lineA], [lineB]) => lineA - lineB); const success = await editor.edit(editBuilder => {
-                for (const [lineNumber, record] of sortedRecords) {
-                    try {
-                        // 查找当前行的位置（可能由于之前的编辑而改变）
-                        const position = this.findInsertPosition(editor.document, record.startPosition.line);
+        if (!snapshot) {
+            vscode.window.showErrorMessage('无法找到原始快照，无法恢复注释');
+            return;
+        }
 
-                        if (position !== null) {
-                            // 在找到的位置插入原始注释
-                            editBuilder.insert(position, record.originalText);
-                            restoredCount++;
-                        }
-                    } catch (error) {
-                        console.error('恢复注释时出错:', error);
-                    }
-                }
-            });
+        const success = await editor.edit(editBuilder => {
+            const fullRange = new vscode.Range(
+                new vscode.Position(0, 0),
+                editor.document.lineAt(editor.document.lineCount - 1).range.end
+            );
+            editBuilder.replace(fullRange, snapshot);
+        });
 
-        if (success && restoredCount > 0) {
-            // 清除隐藏记录
+        if (success) {
             this.hiddenCommentsMap.delete(filePath);
-            vscode.window.showInformationMessage(`已显示 ${restoredCount} 个隐藏的注释！`);
+            this.historyManager.endLieSession(filePath);
+            vscode.window.showInformationMessage('已显示隐藏的注释！');
         } else {
             vscode.window.showErrorMessage('显示注释操作失败！');
         }

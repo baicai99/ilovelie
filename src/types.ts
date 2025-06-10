@@ -50,7 +50,7 @@ export interface HistoryRecord {
     originalText: string;
     newText: string;
     timestamp: number;
-    type: 'manual-replace' | 'dictionary-replace' | 'ai-replace' | 'ai-batch-replace' | 'ai-selective-replace' | 'hide-comment';
+    type: 'manual-replace' | 'dictionary-replace' | 'ai-replace' | 'ai-batch-replace' | 'ai-selective-replace' | 'hide-comment' | 'session-start';
     // 位置信息，使还原更准确
     startPosition: { line: number; character: number };
     endPosition: { line: number; character: number };
@@ -62,6 +62,8 @@ export interface HistoryRecord {
     sessionEndTime?: number;
     // 历史版本号（同一位置的多次修改）
     versionNumber?: number;
+    // 当前文档快照，用于可靠还原
+    fileSnapshot?: string;
 }
 
 /**

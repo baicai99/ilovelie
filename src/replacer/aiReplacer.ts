@@ -571,7 +571,7 @@ ${numberedComments}
 
         // 启动新的撒谎会话
         const filePath = editor.document.uri.fsPath;
-        const sessionId = this.historyManager.startLieSession(filePath);
+        const sessionId = this.historyManager.startLieSession(filePath, editor.document.getText());
         console.log(`[AIReplacer] 开始新的AI单个替换会话: ${sessionId}`);
 
         try {
@@ -669,7 +669,7 @@ ${numberedComments}
 
         // 启动新的撒谎会话
         const filePath = editor.document.uri.fsPath;
-        const sessionId = this.historyManager.startLieSession(filePath);
+        const sessionId = this.historyManager.startLieSession(filePath, editor.document.getText());
         console.log(`[AIReplacer] 开始新的AI撒谎会话: ${sessionId}`);
 
         // 使用CommentScanner检测所有注释
@@ -870,7 +870,7 @@ ${numberedComments}
 
         // 启动新的撒谎会话
         const filePath = editor.document.uri.fsPath;
-        const sessionId = this.historyManager.startLieSession(filePath);
+        const sessionId = this.historyManager.startLieSession(filePath, editor.document.getText());
         console.log(`[AIReplacer] 开始新的AI选择性撒谎会话: ${sessionId}`);
 
         // 使用CommentScanner检测所有注释

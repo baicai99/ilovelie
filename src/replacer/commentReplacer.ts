@@ -33,7 +33,7 @@ export class CommentReplacer {
 
         // 启动新的撒谎会话
         const filePath = editor.document.uri.fsPath;
-        const sessionId = this.historyManager.startLieSession(filePath);
+        const sessionId = this.historyManager.startLieSession(filePath, editor.document.getText());
         console.log(`[CommentReplacer] 开始新的手动替换会话: ${sessionId}`);
 
         try {
@@ -154,7 +154,7 @@ export class CommentReplacer {
 
         // 启动新的撒谎会话
         const filePath = editor.document.uri.fsPath;
-        const sessionId = this.historyManager.startLieSession(filePath);
+        const sessionId = this.historyManager.startLieSession(filePath, editor.document.getText());
         console.log(`[CommentReplacer] 开始新的选中替换会话: ${sessionId}`);
 
         try {
@@ -234,7 +234,7 @@ export class CommentReplacer {
 
         // 启动新的撒谎会话
         const filePath = editor.document.uri.fsPath;
-        const sessionId = this.historyManager.startLieSession(filePath);
+        const sessionId = this.historyManager.startLieSession(filePath, editor.document.getText());
         console.log(`[CommentReplacer] 开始新的智能替换会话: ${sessionId}`);
 
         try {
