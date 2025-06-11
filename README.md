@@ -15,6 +15,9 @@
 
 **使用本插件即表示您已了解并接受上述风险！**
 
+## ⚠️ vscode 上架说明
+由于 vscode 上架需要用到 visa 信用卡之类的注册开发者账号，所以暂时正在处理中，如果想要安装的话可以使用 安装 右侧的发行版（保证常规功能可以用，无明显bug）。
+
 ---
 
 ## 简介
@@ -33,20 +36,12 @@
 
 ## 安装
 
-### VS Code 扩展市场（推荐）
-1. 打开 VS Code。
-2. 按 `Ctrl+Shift+X` 打开扩展面板。
-3. 搜索 "我爱撒谎" 或 "ilovelie" 并点击安装。
-
-### 命令行
-```bash
-code --install-extension baicai99.ilovelie
-```
-
 ### 手动安装
 1. 从 [GitHub Releases](https://github.com/baicai99/ilovelie/releases)
    下载最新 `.vsix` 文件。
-2. 在 VS Code 中执行 `Extensions: Install from VSIX...` 选择下载的文件。
+2. 打开扩展市场
+3. 点击扩展界面的右上角有横向的三个点。
+4. 点击从 vsix 安装。
 
 ## 使用
 
@@ -67,3 +62,14 @@ code --install-extension baicai99.ilovelie
 ## 许可证
 
 [MIT](LICENSE)
+
+## TODO
+
+- [ ] 添加更多语言的字典支持
+- [ ] 优化AI替换的准确性和速度
+- [ ] 增加自定义快捷键设置
+- [ ] 支持更多编程语言的注释格式
+- [ ] 添加撤销功能的历史记录界面
+- [ ] 优化插件性能，减少内存占用
+- [ ] 增加插件使用统计和分析功能
+
