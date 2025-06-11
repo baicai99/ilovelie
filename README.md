@@ -1,7 +1,6 @@
 # 我爱撒谎 (iLoveLie)
-一个可以对代码注释撒谎的 VS Code 插件，让代码的真实含义只有你知道。
 
----
+![alt text](background.png)
 
 ## ⚠️ 免责声明
 
