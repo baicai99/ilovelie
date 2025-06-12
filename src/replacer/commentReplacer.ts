@@ -21,7 +21,76 @@ export class CommentReplacer {
         this.commentScanner = new CommentScanner();
         this.historyManager = historyManager;
         this.toggleManager = toggleManager;
-    }    /**
+    }
+
+    /**
+     * 打开文本输入面板，支持多行输入
+     */
+    private async showReplacementInput(initial: string): Promise<string | undefined> {
+        const panel = vscode.window.createWebviewPanel(
+            'ilovelieReplaceInput',
+            '编辑替换内容',
+            vscode.ViewColumn.Active,
+            { enableScripts: true }
+        );
+
+        panel.webview.html = this.getInputHtml(initial);
+
+        return new Promise(resolve => {
+            const listener = panel.webview.onDidReceiveMessage(msg => {
+                if (msg.command === 'confirm') {
+                    resolve(msg.text as string);
+                    panel.dispose();
+                } else if (msg.command === 'cancel') {
+                    resolve(undefined);
+                    panel.dispose();
+                }
+            });
+
+            panel.onDidDispose(() => {
+                listener.dispose();
+                resolve(undefined);
+            });
+        });
+    }
+
+    /** 获取输入面板HTML */
+    private getInputHtml(text: string): string {
+        const escaped = text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: var(--vscode-font-family); padding: 10px; }
+        textarea { width: 100%; height: 70vh; }
+        button { margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <textarea id="input">${escaped}</textarea>
+    <br />
+    <button id="confirm">Confirm</button>
+    <button id="cancel">Cancel</button>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        document.getElementById('confirm').addEventListener('click', () => {
+            vscode.postMessage({ command: 'confirm', text: document.getElementById('input').value });
+        });
+        document.getElementById('cancel').addEventListener('click', () => {
+            vscode.postMessage({ command: 'cancel' });
+        });
+    </script>
+</body>
+</html>`;
+    }
+
+    /**
      * 手动替换注释功能 - 使用扫描器优先获取数据
      */
     public async replaceComment(): Promise<void> {
@@ -68,11 +137,7 @@ export class CommentReplacer {
                 return;
             }
 
-            const newComment = await vscode.window.showInputBox({
-                prompt: '请输入新的撒谎注释内容',
-                placeHolder: '例如：这个函数用来播放音乐',
-                value: selectedItem.comment.cleanText
-            });
+            const newComment = await this.showReplacementInput(selectedItem.comment.cleanText);
 
             if (!newComment) {
                 return;
