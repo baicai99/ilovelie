@@ -196,6 +196,21 @@
         "command": "ilovelie.toggleCommentVisibility",
         "key": "ctrl+shift+h",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "ilovelie.toggleTruthState",
+        "key": "ctrl+shift+t",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "ilovelie.aiReplaceSelectedComment",
+        "key": "ctrl+shift+a",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "ilovelie.replaceSelectedComment",
+        "key": "ctrl+shift+r",
+        "when": "editorTextFocus && editorHasSelection"
       }
     ]
   },

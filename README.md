@@ -45,14 +45,24 @@
 
 ## 使用
 
-1. `Ctrl+Shift+P` 打开命令面板，输入下列命令之一：
-   - **手动替换注释** (`ilovelie.replaceComment`)
-   - **批量-字典替换注释** (`ilovelie.dictionaryReplaceComments`)
-   - **多选-AI替换** (`ilovelie.aiSelectiveReplaceComments`)
-   - **切换注释显示/隐藏** (`ilovelie.toggleCommentVisibility`)
-   - **🔄 切换真话/假话** (`ilovelie.toggleTruthState`)
-2. 也可以在编辑器右键菜单中找到相同的操作。
+### 命令面板方式
+`Ctrl+Shift+P` 打开命令面板，输入下列命令之一：
+- **手动替换注释** (`ilovelie.replaceComment`)
+- **批量-字典替换注释** (`ilovelie.dictionaryReplaceComments`)
+- **多选-AI替换** (`ilovelie.aiSelectiveReplaceComments`)
+- **切换注释显示/隐藏** (`ilovelie.toggleCommentVisibility`)
+- **🔄 切换真话/假话** (`ilovelie.toggleTruthState`)
 
+### 快捷键方式
+- `Ctrl+Shift+H` - 切换注释显示/隐藏
+- `Ctrl+Shift+T` - 切换真话/假话
+- `Ctrl+Shift+A` - AI替换选中注释（需要先选中文本）
+- `Ctrl+Shift+R` - 手动替换选中注释（需要先选中文本）
+
+### 右键菜单
+也可以在编辑器右键菜单中找到相同的操作。
+
+### AI 配置
 配置 AI 功能时，需要在设置中填写 `OpenAI API Key`、模型名称和 Base URL。
 
 ## 贡献
@@ -67,7 +77,7 @@
 
 - [ ] 添加更多语言的字典支持
 - [ ] 优化AI替换的准确性和速度
-- [ ] 增加自定义快捷键设置
+- [x] 增加自定义快捷键设置
 - [ ] 支持更多编程语言的注释格式
 - [ ] 添加撤销功能的历史记录界面
 - [ ] 优化插件性能，减少内存占用
