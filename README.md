@@ -1,85 +1,165 @@
-# 我爱撒谎 (iLoveLie)
+# 我爱撒谎 (ilovelie)
 
-![alt text](background.png)
+一款可以对代码注释撒谎的 VS Code 插件
 
-## ⚠️ 免责声明
+<!-- PROJECT SHIELDS -->
 
-**本插件仅供娱乐和学习目的使用！**
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
 
-由于开发者能力有限，本插件可能存在各种BUG和不稳定因素。请注意：
-- 🎭 **仅供娱乐**：本插件主要用于代码注释的趣味性修改，请勿在生产环境中使用
-- 🚨 **风险提示**：使用本插件可能导致代码注释丢失、文件损坏等问题
-- 💼 **生产环境禁用**：强烈建议不要在重要的工作项目或生产环境中使用
-- 🔄 **备份建议**：使用前请务必备份重要代码文件
-- 🐛 **BUG报告**：如遇问题欢迎提交Issue，但无法保证及时修复
+<!-- PROJECT LOGO -->
+<br />
 
-**使用本插件即表示您已了解并接受上述风险！**
+<p align="center">
+  <a href="https://github.com/baicai99/ilovelie">
+    <img src="icon.png" alt="Logo" width="80" height="80">
+  </a>
 
-## ⚠️ vscode 上架说明
-由于 vscode 上架需要用到 visa 信用卡之类的注册开发者账号，所以暂时正在处理中，如果想要安装的话可以使用 安装 右侧的发行版（保证常规功能可以用，无明显bug）。
+  <h3 align="center">我爱撒谎 VS Code 插件</h3>
+  <p align="center">
+    一个让注释胡言乱语的插件
+    <br />
+    <a href="https://github.com/baicai99/ilovelie"><strong>探索本项目的文档 »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/baicai99/ilovelie">查看Demo</a>
+    ·
+    <a href="https://github.com/baicai99/ilovelie/issues">报告Bug</a>
+    ·
+    <a href="https://github.com/baicai99/ilovelie/issues">提出新特性</a>
+  </p>
 
----
+</p>
 
-## 简介
+本篇README.md面向开发者
 
-这个扩展帮助你批量或选择性地修改注释内容，甚至可以利用 OpenAI 自动生成有趣的
+## 目录
 
-## 功能
+- [上手指南](#上手指南)
+  - [开发前的配置要求](#开发前的配置要求)
+  - [安装步骤](#安装步骤)
+- [文件目录说明](#文件目录说明)
+- [开发的架构](#开发的架构)
+- [部署](#部署)
+- [使用到的框架](#使用到的框架)
+- [贡献者](#贡献者)
+  - [如何参与开源项目](#如何参与开源项目)
+- [版本控制](#版本控制)
+- [作者](#作者)
+- [鸣谢](#鸣谢)
 
-- **手动替换**：输入任意内容替换注释，支持单行和多行格式。
-- **字典替换**：根据关键词自动生成假话，可批量或选择性执行。
-- **AI 智能替换**：通过 OpenAI API 生成注释，支持批量和选择模式，可自定义模型与
-  Base URL，并在执行前提示可能产生的费用。
-- **隐藏/显示注释**：一键切换所有注释的可见性。
-- **真话/假话切换**：在状态栏显示当前模式，随时切换回原始注释或再次应用假话。
-- **多语言支持**：适用于常见编程语言的注释风格。
+### 上手指南
 
-## 安装
+请将所有链接中的“shaojintian/Best_README_template”改为“your_github_name/your_repository”
 
-### 手动安装
-1. 从 [GitHub Releases](https://github.com/baicai99/ilovelie/releases)
-   下载最新 `.vsix` 文件。
-2. 打开扩展市场
-3. 点击扩展界面的右上角有横向的三个点。
-4. 点击从 vsix 安装。
+###### 开发前的配置要求
 
-## 使用
+1. Node.js 18.x
+2. VS Code 1.100.x
 
-### 命令面板方式
-`Ctrl+Shift+P` 打开命令面板，输入下列命令之一：
-- **手动替换注释** (`ilovelie.replaceComment`)
-- **批量-字典替换注释** (`ilovelie.dictionaryReplaceComments`)
-- **多选-AI替换** (`ilovelie.aiSelectiveReplaceComments`)
-- **切换注释显示/隐藏** (`ilovelie.toggleCommentVisibility`)
-- **🔄 切换真话/假话** (`ilovelie.toggleTruthState`)
+###### **安装步骤**
 
-### 快捷键方式
-- `Ctrl+Shift+H` - 切换注释显示/隐藏
-- `Ctrl+Shift+T` - 切换真话/假话
-- `Ctrl+Shift+A` - AI替换选中注释（需要先选中文本）
-- `Ctrl+Shift+R` - 手动替换选中注释（需要先选中文本）
+1. Get a free API Key at [https://example.com](https://example.com)
+2. Clone the repo
 
-### 右键菜单
-也可以在编辑器右键菜单中找到相同的操作。
+```sh
+git clone https://github.com/baicai99/ilovelie.git
+```
 
-### AI 配置
-配置 AI 功能时，需要在设置中填写 `OpenAI API Key`、模型名称和 Base URL。
+### 文件目录说明
+eg:
 
-## 贡献
+```
+.
+├── LICENSE
+├── LLM.md
+├── README.md
+├── background.png
+├── icon.png
+├── esbuild.js
+├── eslint.config.mjs
+├── package-lock.json
+├── package.json
+├── tsconfig.json
+├── scripts/
+│   └── setup-tests.sh
+└── src/
+    ├── commands/
+    ├── comment/
+    ├── data/
+    ├── manager/
+    ├── replacer/
+    └── extension.ts
+```
 
-欢迎提 Issue 或 Pull Request！详细流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+### 开发的架构
 
-## 许可证
+请阅读[ARCHITECTURE.md](https://github.com/baicai99/ilovelie/blob/master/ARCHITECTURE.md) 查阅为该项目的架构。
 
-[MIT](LICENSE)
+### 部署
 
-## TODO
+暂无
 
-- [ ] 添加更多语言的字典支持
-- [ ] 优化AI替换的准确性和速度
-- [x] 增加自定义快捷键设置
-- [ ] 支持更多编程语言的注释格式
-- [ ] 添加撤销功能的历史记录界面
-- [ ] 优化插件性能，减少内存占用
-- [ ] 增加插件使用统计和分析功能
+### 使用到的框架
 
+- [TypeScript](https://www.typescriptlang.org)
+- [VS Code API](https://code.visualstudio.com/api)
+- [esbuild](https://esbuild.github.io)
+
+### 贡献者
+
+请阅读**CONTRIBUTING.md** 查阅为该项目做出贡献的开发者。
+
+#### 如何参与开源项目
+
+贡献使开源社区成为一个学习、激励和创造的绝佳场所。你所作的任何贡献都是**非常感谢**的。
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+### 版本控制
+
+该项目使用Git进行版本管理。您可以在repository参看当前可用版本。
+
+### 作者
+
+baicai99@example.com
+
+知乎:xxxx  &ensp; qq:xxxxxx
+
+ *您也可以在贡献者名单中参看所有参与该项目的开发者。*
+
+### 版权说明
+
+该项目签署了MIT 授权许可，详情请参阅 [LICENSE](https://github.com/baicai99/ilovelie/blob/master/LICENSE)
+
+### 鸣谢
+
+- [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
+- [Img Shields](https://shields.io)
+- [Choose an Open Source License](https://choosealicense.com)
+- [GitHub Pages](https://pages.github.com)
+- [Animate.css](https://daneden.github.io/animate.css)
+- [xxxxxxxxxxxxxx](https://connoratherton.com/loaders)
+
+<!-- links -->
+[your-project-path]:baicai99/ilovelie
+[contributors-shield]: https://img.shields.io/github/contributors/baicai99/ilovelie.svg?style=flat-square
+[contributors-url]: https://github.com/baicai99/ilovelie/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/baicai99/ilovelie.svg?style=flat-square
+[forks-url]: https://github.com/baicai99/ilovelie/network/members
+[stars-shield]: https://img.shields.io/github/stars/baicai99/ilovelie.svg?style=flat-square
+[stars-url]: https://github.com/baicai99/ilovelie/stargazers
+[issues-shield]: https://img.shields.io/github/issues/baicai99/ilovelie.svg?style=flat-square
+[issues-url]: https://github.com/baicai99/ilovelie/issues
+[license-shield]: https://img.shields.io/github/license/baicai99/ilovelie.svg?style=flat-square
+[license-url]: https://github.com/baicai99/ilovelie/blob/master/LICENSE
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/baicai99
