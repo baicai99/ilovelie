@@ -4,12 +4,12 @@
 
 <!-- PROJECT SHIELDS -->
 
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
+[![Contributors][contributors-shield]][contributors-url]  
+[![Forks][forks-shield]][forks-url]  
+[![Stargazers][stars-shield]][stars-url]  
+[![Issues][issues-shield]][issues-url]  
+[![MIT License][license-shield]][license-url]  
+[![LinkedIn][linkedin-shield]][linkedin-url]  
 
 <!-- PROJECT LOGO -->
 <br />
@@ -39,22 +39,24 @@
 
 ## 目录
 
-- [上手指南](#上手指南)
-  - [开发前的配置要求](#开发前的配置要求)
-  - [安装步骤](#安装步骤)
-- [文件目录说明](#文件目录说明)
-- [开发的架构](#开发的架构)
-- [部署](#部署)
-- [使用到的框架](#使用到的框架)
-- [贡献者](#贡献者)
-  - [如何参与开源项目](#如何参与开源项目)
-- [版本控制](#版本控制)
-- [作者](#作者)
-- [鸣谢](#鸣谢)
+- [我爱撒谎 (ilovelie)](#我爱撒谎-ilovelie)
+  - [目录](#目录)
+    - [上手指南](#上手指南)
+          - [开发前的配置要求](#开发前的配置要求)
+          - [**安装步骤**](#安装步骤)
+    - [文件目录说明](#文件目录说明)
+    - [开发的架构](#开发的架构)
+    - [部署](#部署)
+    - [手动替换注释](#手动替换注释)
+    - [使用到的框架](#使用到的框架)
+    - [贡献者](#贡献者)
+      - [如何参与开源项目](#如何参与开源项目)
+    - [版本控制](#版本控制)
+    - [作者](#作者)
+    - [版权说明](#版权说明)
+    - [鸣谢](#鸣谢)
 
 ### 上手指南
-
-请将所有链接中的“shaojintian/Best_README_template”改为“your_github_name/your_repository”
 
 ###### 开发前的配置要求
 
@@ -136,9 +138,7 @@ eg:
 
 ### 作者
 
-baicai99@example.com
-
-知乎:xxxx  &ensp; qq:xxxxxx
+1637083533@qq.com
 
  *您也可以在贡献者名单中参看所有参与该项目的开发者。*
 
@@ -147,13 +147,6 @@ baicai99@example.com
 该项目签署了MIT 授权许可，详情请参阅 [LICENSE](https://github.com/baicai99/ilovelie/blob/master/LICENSE)
 
 ### 鸣谢
-
-- [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
-- [Img Shields](https://shields.io)
-- [Choose an Open Source License](https://choosealicense.com)
-- [GitHub Pages](https://pages.github.com)
-- [Animate.css](https://daneden.github.io/animate.css)
-- [xxxxxxxxxxxxxx](https://connoratherton.com/loaders)
 
 <!-- links -->
 [your-project-path]:baicai99/ilovelie
