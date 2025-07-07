@@ -1,6 +1,25 @@
 import * as vscode from 'vscode';
 import { SupportedLanguage, CommentFormat, CommentInfo } from '../types';
 
+/** 默认注释样式映射 */
+const DEFAULT_COMMENT_FORMAT: Record<SupportedLanguage | string, CommentFormat> = {
+    javascript: 'single-line-slash',
+    typescript: 'single-line-slash',
+    java: 'single-line-slash',
+    csharp: 'single-line-slash',
+    cpp: 'single-line-slash',
+    c: 'single-line-slash',
+    python: 'single-line-hash',
+    ruby: 'single-line-hash',
+    shell: 'single-line-hash',
+    html: 'html-comment',
+    xml: 'html-comment',
+    css: 'multi-line-star',
+    scss: 'multi-line-star',
+    less: 'multi-line-star',
+    other: 'single-line-slash'
+};
+
 /**
  * 注释检测和处理器
  * 负责检测文本是否为注释，以及处理注释格式
@@ -70,8 +89,8 @@ export class CommentDetector {
             return 'html-comment';
         }
 
-        // 默认返回单行斜杠注释
-        return 'single-line-slash';
+        // 根据语言返回默认的注释样式
+        return DEFAULT_COMMENT_FORMAT[languageId] || 'single-line-slash';
     }
 
     /**
@@ -79,11 +98,14 @@ export class CommentDetector {
      */
     public replaceCommentContent(originalComment: string, newContent: string, languageId: string): string {
         const trimmed = originalComment.trim();
+        const indentationMatch = originalComment.match(/^\s*/);
+        const indentation = indentationMatch ? indentationMatch[0] : '';
 
         // JavaScript/TypeScript/Java/C#/C++ 单行注释
         if (this.isSlashComment(trimmed)) {
             return originalComment.replace(/\/\/\s*.*/, `// ${newContent}`);
-        }        // Python/Ruby/Shell 注释
+        }
+        // Python/Ruby/Shell 注释
         if (this.isHashComment(trimmed)) {
             return originalComment.replace(/#\s*.*/, `# ${newContent}`);
         }
@@ -103,17 +125,30 @@ export class CommentDetector {
             return originalComment.replace(/<!--[\s\S]*?-->/, `<!-- ${newContent} -->`);
         }
 
-        return originalComment;
+        // 如果无法根据原文本判断，使用语言默认注释样式
+        const format = DEFAULT_COMMENT_FORMAT[languageId] || 'single-line-slash';
+        switch (format) {
+            case 'single-line-hash':
+                return `${indentation}# ${newContent}`;
+            case 'multi-line-star':
+                return `${indentation}/* ${newContent} */`;
+            case 'html-comment':
+                return `${indentation}<!-- ${newContent} -->`;
+            default:
+                return `${indentation}// ${newContent}`;
+        }
     }
 
     /**
      * 提取注释内容（去除注释符号）
      */
     public extractCommentContent(text: string, languageId: string): string {
-        const trimmed = text.trim();        // 处理 // 注释
+        const trimmed = text.trim();
+        // 处理 // 注释
         if (this.isSlashComment(trimmed)) {
             return trimmed.replace(/^\/\/\s*/, '').trim();
-        }        // 处理 # 注释
+        }
+        // 处理 # 注释
         if (this.isHashComment(trimmed)) {
             return trimmed.replace(/^#\s*/, '').trim();
         }
@@ -133,7 +168,19 @@ export class CommentDetector {
             return trimmed.replace(/^<!--\s*/, '').replace(/\s*-->$/, '').trim();
         }
 
-        return trimmed;
+        // 根据语言默认注释样式尝试去除前缀
+        const format = DEFAULT_COMMENT_FORMAT[languageId];
+        if (format === 'single-line-hash') {
+            return trimmed.replace(/^#\s*/, '').trim();
+        }
+        if (format === 'multi-line-star') {
+            return trimmed.replace(/^\/\*\s*/, '').replace(/\s*\*\/$/, '').trim();
+        }
+        if (format === 'html-comment') {
+            return trimmed.replace(/^<!--\s*/, '').replace(/\s*-->$/, '').trim();
+        }
+
+        return trimmed.replace(/^\/\/\s*/, '').trim();
     }
 
     /**
