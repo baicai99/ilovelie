@@ -51,8 +51,6 @@
 
 ### 上手指南
 
-请将所有链接中的“shaojintian/Best_README_template”改为“your_github_name/your_repository”
-
 ###### 开发前的配置要求
 
 1. Node.js 18.x
