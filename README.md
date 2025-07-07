@@ -4,12 +4,7 @@
 
 <!-- PROJECT SHIELDS -->
 
-[![Contributors][contributors-shield]][contributors-url]  
-[![Forks][forks-shield]][forks-url]  
-[![Stargazers][stars-shield]][stars-url]  
-[![Issues][issues-shield]][issues-url]  
-[![MIT License][license-shield]][license-url]  
-[![LinkedIn][linkedin-shield]][linkedin-url]  
+[![Contributors][contributors-shield]][contributors-url]  [![Forks][forks-shield]][forks-url] [![Stargazers][stars-shield]][stars-url]  [![Issues][issues-shield]][issues-url]  [![MIT License][license-shield]][license-url] [![LinkedIn][linkedin-shield]][linkedin-url]
 
 <!-- PROJECT LOGO -->
 <br />
@@ -46,8 +41,6 @@
           - [**安装步骤**](#安装步骤)
     - [文件目录说明](#文件目录说明)
     - [开发的架构](#开发的架构)
-    - [部署](#部署)
-    - [手动替换注释](#手动替换注释)
     - [使用到的框架](#使用到的框架)
     - [贡献者](#贡献者)
       - [如何参与开源项目](#如何参与开源项目)
@@ -61,16 +54,11 @@
 ###### 开发前的配置要求
 
 1. Node.js 18.x
-2. VS Code 1.100.x
+2. 由于不知名限制，需要使用最新版的vscode，如果提示无法安装请从官网从新下载vscode。
 
 ###### **安装步骤**
 
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
-
-```sh
-git clone https://github.com/baicai99/ilovelie.git
-```
+从 [这里](https://github.com/baicai99/ilovelie/releases/) 下载最新的 .vsix 文件，在vscode扩展中安装。
 
 ### 文件目录说明
 eg:
@@ -102,16 +90,6 @@ eg:
 
 请阅读[ARCHITECTURE.md](https://github.com/baicai99/ilovelie/blob/master/ARCHITECTURE.md) 查阅为该项目的架构。
 
-### 部署
-
-暂无
-
-### 手动替换注释
-
-使用 `手动替换注释` 命令可以替换任意注释内容。当选择具体注释后，插件会弹出一个文本编辑面板，面板内的文本框已经预填原始注释内容，可在其中输入多行内容。
-
-点击 **Confirm** 按钮会用新的文本替换原注释，选择 **Cancel** 则放弃本次操作。
-
 ### 使用到的框架
 
 - [TypeScript](https://www.typescriptlang.org)
@@ -126,11 +104,11 @@ eg:
 
 贡献使开源社区成为一个学习、激励和创造的绝佳场所。你所作的任何贡献都是**非常感谢**的。
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Fork 本项目
+2. 克隆 Fork 的项目到本地(`git clone yours/ilovelie`)
+3. 创建并切换到新的 git 分支，并使用功能模块命名。 (`git checkout -b feature/AmazingFeature`)
+4. 提交变化 (`git commit -m 'Add some AmazingFeature'`)
+5. 提交 PR 到主分支
 
 ### 版本控制
 
@@ -139,8 +117,6 @@ eg:
 ### 作者
 
 1637083533@qq.com
-
- *您也可以在贡献者名单中参看所有参与该项目的开发者。*
 
 ### 版权说明
 
