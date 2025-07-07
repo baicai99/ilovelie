@@ -100,17 +100,17 @@ eg:
 
 ### 贡献者
 
-请阅读**CONTRIBUTING.md** 查阅为该项目做出贡献的开发者。
+请阅读 [ARCHITECTURE.md](https://github.com/baicai99/ilovelie/blob/master/ARCHITECTURE.md) 查阅为该项目做出贡献的开发者。
 
 #### 如何参与开源项目
 
 贡献使开源社区成为一个学习、激励和创造的绝佳场所。你所作的任何贡献都是**非常感谢**的。
 
-1. Fork 本项目
-2. 克隆 Fork 的项目到本地(`git clone yours/ilovelie`)
+1. Fork 本项目。
+2. 克隆 Fork 的项目到本地。(`git clone yours/ilovelie`)
 3. 创建并切换到新的 git 分支，并使用功能模块命名。 (`git checkout -b feature/AmazingFeature`)
-4. 提交变化 (`git commit -m 'Add some AmazingFeature'`)
-5. 提交 PR 到主分支
+4. 提交变化。 (`git commit -m 'Add some AmazingFeature'`)
+5. 提交 PR 到主分支。
 
 ### 版本控制
 
