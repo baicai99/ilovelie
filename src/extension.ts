@@ -35,14 +35,15 @@ export function activate(context: vscode.ExtensionContext) {
 	historyManager = new HistoryManager();
 	historyManager.initialize(context);
 	commentDetector = new CommentDetector();
-        commentScanner = new CommentScanner();
-        toggleManager = new ToggleManager(historyManager);
+	// 创建单一的 CommentScanner 实例供所有替换器共享
+	commentScanner = new CommentScanner();
+	toggleManager = new ToggleManager(historyManager);
 	toggleManager.initialize(context);
-	// 传递toggleManager给需要它的替换器
-	commentReplacer = new CommentReplacer(commentDetector, historyManager, toggleManager);
-	dictionaryReplacer = new DictionaryReplacer(commentDetector, historyManager, toggleManager);
+	// 传递 commentScanner 和 toggleManager 给所有需要它们的替换器
+	commentReplacer = new CommentReplacer(commentDetector, historyManager, toggleManager, commentScanner);
+	dictionaryReplacer = new DictionaryReplacer(commentDetector, historyManager, toggleManager, commentScanner);
 	commentHider = new CommentHider(commentDetector, historyManager);
-	aiReplacer = new AIReplacer(commentDetector, historyManager, toggleManager);
+	aiReplacer = new AIReplacer(commentDetector, historyManager, toggleManager, commentScanner);
 	// 初始化命令注册器并注册所有命令
 	commandRegistrar = new CommandRegistrar(
 		commentReplacer,

@@ -6,6 +6,7 @@ import { CommentHider } from '../comment/commentHider';
 import { AIReplacer } from '../replacer/aiReplacer';
 import { CommentScanner } from '../comment/commentScanner';
 import { ToggleManager } from '../manager/toggleManager';
+import { TruthToggleState } from '../types';
 import { HistoryManager } from '../manager/historyManager';
 
 /**
@@ -117,13 +118,15 @@ export class CommandRegistrar {
             const result = await this.toggleManager.toggleTruthState();
 
             if (result.success) {
-                const stateText = result.newState === 'truth' ? '真话模式' : '假话模式';
-                const icon = result.newState === 'truth' ? '✅' : '🤥';
+                const stateText = result.newState === TruthToggleState.TRUTH ? '真话模式' : '假话模式';
+                const icon = result.newState === TruthToggleState.TRUTH ? '✅' : '🤥';
 
                 vscode.window.showInformationMessage(
                     `${icon} 已切换到${stateText}` +
                     (result.affectedComments > 0 ? ` (影响了 ${result.affectedComments} 个注释)` : '')
                 );
+            } else if (result.newState === TruthToggleState.NONE) {
+                vscode.window.showInformationMessage('当前文件没有假注释，无法切换。');
             } else {
                 vscode.window.showErrorMessage(`切换失败: ${result.errorMessage}`);
             }
@@ -159,7 +162,7 @@ export class CommandRegistrar {
             );
 
             if (confirm === '确定') {
-                const result = this.historyManager.clearRecordsForFile(documentUri);
+                const result = await this.historyManager.clearRecordsForFile(documentUri);
 
                 if (result.success) {
                     // 更新toggle状态

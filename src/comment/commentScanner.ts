@@ -269,9 +269,10 @@ export class CommentScanner {
                 if (clean.endsWith('*/')) {
                     clean = clean.substring(0, clean.length - 2);
                 }
-                if (clean.startsWith('*')) {
-                    clean = clean.substring(1);
-                }
+                clean = clean.split('\n').map(line => {
+                    const lineTrimmed = line.trim();
+                    return lineTrimmed.startsWith('*') ? lineTrimmed.substring(1).trim() : lineTrimmed;
+                }).join('\n');
                 return clean.trim();
 
             case 'html-comment':

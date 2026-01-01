@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { HistoryRecord, SingleReplaceResult } from '../types';
 import { CommentDetector } from '../comment/commentDetector';
 import { CommentScanner } from '../comment/commentScanner';
 import { HistoryManager } from '../manager/historyManager';
 import { ToggleManager } from '../manager/toggleManager';
 import { createLiesDictionary, getRandomLie, findMatchingLie } from '../data/liesDictionary';
+import { applyCommentReplacements, CommentReplacement } from '../utils/commentReplacementExecutor';
 
 /**
  * 字典替换器
@@ -19,10 +19,15 @@ export class DictionaryReplacer {
     // 撒谎字典：关键词 -> 撒谎内容
     private liesDictionary: Map<string, string[]>;
 
-    constructor(commentDetector: CommentDetector, historyManager: HistoryManager, toggleManager?: ToggleManager) {
+    constructor(
+        commentDetector: CommentDetector,
+        historyManager: HistoryManager,
+        toggleManager: ToggleManager | undefined,
+        commentScanner: CommentScanner
+    ) {
         console.log('[DictionaryReplacer] 初始化字典替换器');
         this.commentDetector = commentDetector;
-        this.commentScanner = new CommentScanner();
+        this.commentScanner = commentScanner;
         this.historyManager = historyManager;
         this.toggleManager = toggleManager;
         // 初始化字典
@@ -60,6 +65,23 @@ export class DictionaryReplacer {
 
         console.log(`[DictionaryReplacer] 找到 ${scanResult.comments.length} 个注释`);
 
+        const commentFormats = new Set(scanResult.comments.map(comment => comment.format));
+        if (commentFormats.size > 1) {
+            console.log(`[DictionaryReplacer] 检测到混合注释类型: ${Array.from(commentFormats).join(', ')}`);
+        }
+
+        if (scanResult.comments.length > 500) {
+            const choice = await vscode.window.showWarningMessage(
+                `发现 ${scanResult.comments.length} 个注释，批量替换可能较慢，是否继续？`,
+                '继续替换',
+                '取消'
+            );
+            if (choice !== '继续替换') {
+                await this.historyManager.endLieSession(filePath);
+                return;
+            }
+        }
+
         // 分析可以进行字典替换的注释
         const dictionaryReplaceableComments = scanResult.comments.filter(comment => {
             const lie = findMatchingLie(comment.cleanText, this.liesDictionary);
@@ -68,66 +90,48 @@ export class DictionaryReplacer {
 
         console.log(`[DictionaryReplacer] 可进行字典替换的注释: ${dictionaryReplaceableComments.length} 个`);
 
-        let totalReplacedCount = 0;
         let dictionaryReplacedCount = 0;
         let randomReplacedCount = 0;
+        const replacements: CommentReplacement[] = [];
 
-        // 执行替换操作
-        const success = await editor.edit(editBuilder => {
-            for (const comment of scanResult.comments) {
-                const lieText = this.generateLieForComment(comment.cleanText);
+        for (const comment of scanResult.comments) {
+            const lieText = this.generateLieForComment(comment.cleanText);
 
-                if (lieText) {
-                    const isDictionaryMatch = findMatchingLie(comment.cleanText, this.liesDictionary) !== null;
+            if (lieText) {
+                const isDictionaryMatch = findMatchingLie(comment.cleanText, this.liesDictionary) !== null;
 
-                    console.log(`[DictionaryReplacer] 替换注释: "${comment.cleanText}" -> "${lieText}" (${isDictionaryMatch ? '字典匹配' : '随机生成'})`);
+                console.log(`[DictionaryReplacer] 替换注释: "${comment.cleanText}" -> "${lieText}" (${isDictionaryMatch ? '字典匹配' : '随机生成'})`);
 
-                    // 创建替换范围
-                    const range = new vscode.Range(
-                        new vscode.Position(comment.range.start.line, comment.range.start.character),
-                        new vscode.Position(comment.range.end.line, comment.range.end.character)
-                    );
+                replacements.push({ comment, newContent: lieText });
 
-                    // 保持注释格式，只替换内容
-                    const formattedLie = this.formatCommentWithLie(comment.content, lieText, this.getCommentTypeFromFormat(comment.format));
-
-                    editBuilder.replace(range, formattedLie);
-
-                    // 记录历史
-                    const historyRecord: HistoryRecord = {
-                        id: this.generateId(),
-                        filePath: editor.document.uri.fsPath,
-                        originalText: comment.content,
-                        newText: formattedLie,
-                        timestamp: Date.now(),
-                        type: 'dictionary-replace',
-                        startPosition: {
-                            line: comment.range.start.line,
-                            character: comment.range.start.character
-                        },
-                        endPosition: {
-                            line: comment.range.end.line,
-                            character: comment.range.end.character
-                        }
-                    };
-
-                    this.historyManager.addRecord(historyRecord);
-
-                    totalReplacedCount++;
-                    if (isDictionaryMatch) {
-                        dictionaryReplacedCount++;
-                    } else {
-                        randomReplacedCount++;
-                    }
+                if (isDictionaryMatch) {
+                    dictionaryReplacedCount++;
                 } else {
-                    console.log(`[DictionaryReplacer] 跳过注释（无匹配内容）: "${comment.cleanText}"`);
+                    randomReplacedCount++;
                 }
+            } else {
+                console.log(`[DictionaryReplacer] 跳过注释（无匹配内容）: "${comment.cleanText}"`);
             }
-        }); console.log(`[DictionaryReplacer] 替换操作完成，成功: ${success}, 总替换数量: ${totalReplacedCount} (字典: ${dictionaryReplacedCount}, 随机: ${randomReplacedCount})`);
+        }
 
-        if (success && totalReplacedCount > 0) {
-            // 通知toggle manager状态已更新
-            this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
+        const totalReplacedCount = replacements.length;
+        if (totalReplacedCount === 0) {
+            await this.historyManager.endLieSession(filePath);
+            vscode.window.showInformationMessage('没有找到可以替换的注释内容。');
+            return;
+        }
+
+        const result = await applyCommentReplacements({
+            editor,
+            replacements,
+            historyManager: this.historyManager,
+            recordType: 'dictionary-replace',
+            toggleManager: this.toggleManager
+        });
+
+        console.log(`[DictionaryReplacer] 替换操作完成，成功: ${result.success}, 总替换数量: ${totalReplacedCount} (字典: ${dictionaryReplacedCount}, 随机: ${randomReplacedCount})`);
+
+        if (result.success && totalReplacedCount > 0) {
 
             // 构建详细的完成消息
             let message = `字典替换完成！共替换了 ${totalReplacedCount} 个注释`;
@@ -143,7 +147,7 @@ export class DictionaryReplacer {
             console.log(`[DictionaryReplacer] 撒谎会话保持活跃，共处理 ${totalReplacedCount} 个注释`);
         } else {
             // 如果替换失败或没有替换任何注释，结束会话
-            this.historyManager.endLieSession(filePath);
+            await this.historyManager.endLieSession(filePath);
             console.log(`[DictionaryReplacer] 撒谎会话已结束，因为没有成功替换注释`);
 
             if (totalReplacedCount === 0) {
@@ -187,38 +191,6 @@ export class DictionaryReplacer {
             .replace(/\n/g, ' ')    // 将换行符替换为空格
             .replace(/\s+/g, ' ')   // 将多个空格合并为一个
             .trim();
-    }    /**
-     * 格式化注释，保持原有格式只替换内容
-     */
-    private formatCommentWithLie(originalComment: string, lieText: string, commentType: string): string {
-        switch (commentType) {
-            case 'line':
-                if (originalComment.trim().startsWith('//')) {
-                    return `// ${lieText}`;
-                }
-                break;
-            case 'block':
-                return `/* ${lieText} */`;
-            case 'documentation':
-                return `/** ${lieText} */`;
-            case 'html':
-                return `<!-- ${lieText} -->`;
-            default:
-                // 尝试保持原格式
-                const trimmed = originalComment.trim();
-                if (trimmed.startsWith('//')) {
-                    return `// ${lieText}`;
-                } else if (trimmed.startsWith('/**')) {
-                    return `/** ${lieText} */`;
-                } else if (trimmed.startsWith('/*')) {
-                    return `/* ${lieText} */`;
-                } else if (trimmed.startsWith('<!--')) {
-                    return `<!-- ${lieText} -->`;
-                }
-        }
-
-        // 默认返回行注释格式
-        return `// ${lieText}`;
     }
 
     /**
@@ -256,6 +228,11 @@ export class DictionaryReplacer {
             return;
         }
 
+        // 启动新的撒谎会话
+        const filePath = editor.document.uri.fsPath;
+        const sessionId = this.historyManager.startLieSession(filePath, editor.document.getText());
+        console.log(`[DictionaryReplacer] 开始新的选择性字典替换会话: ${sessionId}`);
+
         // 使用CommentScanner扫描当前文件中的所有注释
         const scanResult = await this.commentScanner.scanDocument(editor.document);
 
@@ -263,6 +240,7 @@ export class DictionaryReplacer {
         console.log('字典大小:', this.liesDictionary.size);
 
         if (!scanResult.success || scanResult.comments.length === 0) {
+            await this.historyManager.endLieSession(filePath);
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
         }// 为每个注释生成预览信息
@@ -291,6 +269,7 @@ export class DictionaryReplacer {
         console.log('可替换的注释数量:', commentItems.length);
 
         if (commentItems.length === 0) {
+            await this.historyManager.endLieSession(filePath);
             vscode.window.showInformationMessage('没有找到可以替换的注释内容。');
             return;
         }
@@ -304,62 +283,42 @@ export class DictionaryReplacer {
         });
 
         if (!selectedItems || selectedItems.length === 0) {
+            await this.historyManager.endLieSession(filePath);
             return;
         }        // 执行替换
-        let replacedCount = 0;
-        const results: SingleReplaceResult[] = [];
+        const replacements: CommentReplacement[] = [];
 
-        const success = await editor.edit(editBuilder => {
-            selectedItems.forEach((item, index) => {
-                const itemIndex = commentItems.indexOf(item);
-                const commentData = commentDataArray[itemIndex];
-                if (commentData) {
-                    const { comment, lieText } = commentData;
+        selectedItems.forEach(item => {
+            const itemIndex = commentItems.indexOf(item);
+            const commentData = commentDataArray[itemIndex];
+            if (commentData) {
+                const { comment, lieText } = commentData;
+                replacements.push({ comment, newContent: lieText });
+            }
+        });
 
-                    // 创建替换范围
-                    const range = new vscode.Range(
-                        new vscode.Position(comment.range.start.line, comment.range.start.character),
-                        new vscode.Position(comment.range.end.line, comment.range.end.character)
-                    );                    // 保持注释格式，只替换内容
-                    const formattedLie = this.formatCommentWithLie(comment.content, lieText, comment.type);
+        if (replacements.length === 0) {
+            await this.historyManager.endLieSession(filePath);
+            vscode.window.showInformationMessage('没有找到可以替换的注释内容。');
+            return;
+        }
 
-                    editBuilder.replace(range, formattedLie);                    // 记录历史
-                    const historyRecord: HistoryRecord = {
-                        id: this.generateId(),
-                        filePath: editor.document.uri.fsPath,
-                        originalText: comment.content,
-                        newText: formattedLie,
-                        timestamp: Date.now(),
-                        type: 'dictionary-replace',
-                        startPosition: {
-                            line: comment.range.start.line,
-                            character: comment.range.start.character
-                        },
-                        endPosition: {
-                            line: comment.range.end.line,
-                            character: comment.range.end.character
-                        }
-                    };
+        const result = await applyCommentReplacements({
+            editor,
+            replacements,
+            historyManager: this.historyManager,
+            recordType: 'dictionary-replace',
+            toggleManager: this.toggleManager
+        });
 
-                    this.historyManager.addRecord(historyRecord);
-
-                    results.push({
-                        success: true,
-                        originalText: comment.content,
-                        newText: formattedLie,
-                        lineNumber: comment.range.start.line + 1
-                    });
-
-                    replacedCount++;
-                }
-            });
-        }); if (success && replacedCount > 0) {
+        if (result.success && result.replacedCount > 0) {
             // 通知toggle manager状态已更新
             this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
             vscode.window.showInformationMessage(
-                `选择性字典替换完成！共替换了 ${replacedCount} 个注释。`
+                `选择性字典替换完成！共替换了 ${result.replacedCount} 个注释。`
             );
         } else {
+            await this.historyManager.endLieSession(filePath);
             vscode.window.showErrorMessage('替换操作失败！');
         }
     }
@@ -379,87 +338,43 @@ export class DictionaryReplacer {
             return { success: false, replacedCount: 0 };
         }
 
-        let replacedCount = 0;
-        const results: SingleReplaceResult[] = [];
+        const replacements: CommentReplacement[] = [];
 
-        // 开始编辑操作
-        const success = await editor.edit(editBuilder => {
-            for (const comment of comments) {
-                const lie = findMatchingLie(comment.cleanText, this.liesDictionary);
+        for (const comment of comments) {
+            const lie = findMatchingLie(comment.cleanText, this.liesDictionary);
 
-                if (lie) {
-                    console.log(`[DictionaryReplacer] 智能替换注释: "${comment.cleanText}" -> "${lie}"`);
-
-                    // 构建新的注释文本，保持原有格式
-                    let newCommentText = '';
-
-                    switch (comment.format) {
-                        case 'single-line-slash':
-                            newCommentText = `${comment.indentation}// ${lie}`;
-                            break;
-                        case 'single-line-hash':
-                            newCommentText = `${comment.indentation}# ${lie}`;
-                            break;
-                        case 'multi-line-star':
-                            if (comment.multiLinePosition === 'single') {
-                                newCommentText = `${comment.indentation}/* ${lie} */`;
-                            } else {
-                                newCommentText = comment.content.replace(comment.cleanText, lie);
-                            }
-                            break;
-                        case 'html-comment':
-                            newCommentText = `${comment.indentation}<!-- ${lie} -->`;
-                            break;
-                        default:
-                            newCommentText = `${comment.indentation}// ${lie}`;
-                    }
-
-                    editBuilder.replace(comment.range, newCommentText);
-
-                    // 记录结果
-                    results.push({
-                        success: true,
-                        originalText: comment.cleanText,
-                        newText: lie,
-                        lineNumber: comment.lineNumber
-                    });
-
-                    // 记录历史
-                    const record = this.historyManager.createHistoryRecord(
-                        editor.document.uri.fsPath,
-                        comment.content,
-                        newCommentText,
-                        comment.range,
-                        'dictionary-replace'
-                    );
-
-                    this.historyManager.addRecord(record);
-                    replacedCount++;
-                } else {
-                    console.log(`[DictionaryReplacer] 跳过注释（无匹配内容）: "${comment.cleanText}"`);
-                }
+            if (lie) {
+                console.log(`[DictionaryReplacer] 智能替换注释: "${comment.cleanText}" -> "${lie}"`);
+                replacements.push({ comment, newContent: lie });
+            } else {
+                console.log(`[DictionaryReplacer] 跳过注释（无匹配内容）: "${comment.cleanText}"`);
             }
+        }
+
+        const result = await applyCommentReplacements({
+            editor,
+            replacements,
+            historyManager: this.historyManager,
+            recordType: 'dictionary-replace',
+            toggleManager: this.toggleManager
         });
 
-        console.log(`[DictionaryReplacer] 智能替换操作完成，成功: ${success}, 替换数量: ${replacedCount}`);
+        console.log(`[DictionaryReplacer] 智能替换操作完成，成功: ${result.success}, 替换数量: ${result.replacedCount}`);
 
-        if (success && replacedCount > 0) {
-            // 通知toggle manager状态已更新
-            this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
-
+        if (result.success && result.replacedCount > 0) {
             // 只有在showMessage为true时才显示消息
             if (showMessage) {
                 vscode.window.showInformationMessage(
-                    `智能字典替换完成！成功替换了 ${replacedCount} 条注释`
+                    `智能字典替换完成！成功替换了 ${result.replacedCount} 条注释`
                 );
             }
-        } else if (success && replacedCount === 0 && showMessage) {
+        } else if (result.success && result.replacedCount === 0 && showMessage) {
             vscode.window.showInformationMessage('没有找到可以替换的注释内容。');
-        } else if (!success && showMessage) {
+        } else if (!result.success && showMessage) {
             vscode.window.showErrorMessage('字典替换失败！');
         }
 
-        return { success, replacedCount };
+        return { success: result.success, replacedCount: result.replacedCount };
     }
 
     /**
@@ -470,53 +385,22 @@ export class DictionaryReplacer {
             return;
         }
 
-        let replacedCount = 0; const success = await editor.edit(editBuilder => {
-            for (const comment of scanResult.comments) {
-                const randomLie = getRandomLie();
+        const replacements: CommentReplacement[] = scanResult.comments.map((comment: any) => ({
+            comment,
+            newContent: getRandomLie()
+        }));
 
-                // 构建新的注释文本
-                let newCommentText = '';
+        const result = await applyCommentReplacements({
+            editor,
+            replacements,
+            historyManager: this.historyManager,
+            recordType: 'dictionary-replace',
+            toggleManager: this.toggleManager
+        });
 
-                switch (comment.format) {
-                    case 'single-line-slash':
-                        newCommentText = `${comment.indentation}// ${randomLie}`;
-                        break;
-                    case 'single-line-hash':
-                        newCommentText = `${comment.indentation}# ${randomLie}`;
-                        break;
-                    case 'multi-line-star':
-                        if (comment.multiLinePosition === 'single') {
-                            newCommentText = `${comment.indentation}/* ${randomLie} */`;
-                        } else {
-                            newCommentText = comment.content.replace(comment.cleanText, randomLie);
-                        }
-                        break;
-                    case 'html-comment':
-                        newCommentText = `${comment.indentation}<!-- ${randomLie} -->`;
-                        break;
-                    default:
-                        newCommentText = `${comment.indentation}// ${randomLie}`;
-                }
-
-                editBuilder.replace(comment.range, newCommentText);
-
-                // 记录历史
-                const record = this.historyManager.createHistoryRecord(
-                    editor.document.uri.fsPath,
-                    comment.content,
-                    newCommentText,
-                    comment.range,
-                    'dictionary-replace'
-                );
-
-                this.historyManager.addRecord(record);
-                replacedCount++;
-            }
-        }); if (success) {
-            // 通知toggle manager状态已更新
-            this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
+        if (result.success) {
             vscode.window.showInformationMessage(
-                `随机替换完成！成功替换了 ${replacedCount} 条注释`
+                `随机替换完成！成功替换了 ${result.replacedCount} 条注释`
             );
         }
     }    /**
@@ -544,54 +428,22 @@ export class DictionaryReplacer {
                 return;
             }
 
-            let replacedCount = 0;
+            const replacements: CommentReplacement[] = selectedItems.map(item => ({
+                comment: item.comment,
+                newContent: getRandomLie()
+            }));
 
-            const success = await editor.edit(editBuilder => {
-                for (const item of selectedItems) {
-                    const randomLie = getRandomLie();                    // 构建新的注释文本
-                    let newCommentText = '';
-                    const comment = item.comment;
+            const result = await applyCommentReplacements({
+                editor,
+                replacements,
+                historyManager: this.historyManager,
+                recordType: 'dictionary-replace',
+                toggleManager: this.toggleManager
+            });
 
-                    switch (comment.format) {
-                        case 'single-line-slash':
-                            newCommentText = `${comment.indentation}// ${randomLie}`;
-                            break;
-                        case 'single-line-hash':
-                            newCommentText = `${comment.indentation}# ${randomLie}`;
-                            break;
-                        case 'multi-line-star':
-                            if (comment.multiLinePosition === 'single') {
-                                newCommentText = `${comment.indentation}/* ${randomLie} */`;
-                            } else {
-                                newCommentText = comment.content.replace(comment.cleanText, randomLie);
-                            }
-                            break;
-                        case 'html-comment':
-                            newCommentText = `${comment.indentation}<!-- ${randomLie} -->`;
-                            break;
-                        default:
-                            newCommentText = `${comment.indentation}// ${randomLie}`;
-                    }
-
-                    editBuilder.replace(comment.range, newCommentText);
-
-                    // 记录历史
-                    const record = this.historyManager.createHistoryRecord(
-                        editor.document.uri.fsPath,
-                        comment.content,
-                        newCommentText,
-                        comment.range,
-                        'dictionary-replace'
-                    );
-
-                    this.historyManager.addRecord(record);
-                    replacedCount++;
-                }
-            }); if (success) {
-                // 通知toggle manager状态已更新
-                this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
+            if (result.success) {
                 vscode.window.showInformationMessage(
-                    `手动替换完成！成功替换了 ${replacedCount} 条注释`
+                    `手动替换完成！成功替换了 ${result.replacedCount} 条注释`
                 );
             }
         }

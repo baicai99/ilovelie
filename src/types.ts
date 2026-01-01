@@ -10,7 +10,9 @@ export enum TruthToggleState {
     /** 显示真话（原始注释） */
     TRUTH = 'truth',
     /** 显示假话（替换后的注释） */
-    LIE = 'lie'
+    LIE = 'lie',
+    /** 没有假话记录 */
+    NONE = 'none'
 }
 
 /**
@@ -84,6 +86,7 @@ export type SupportedLanguage =
     | 'css'
     | 'scss'
     | 'less'
+    | 'vue'
     | 'other';
 
 /**

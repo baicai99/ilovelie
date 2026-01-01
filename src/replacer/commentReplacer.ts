@@ -4,6 +4,7 @@ import { CommentDetector } from '../comment/commentDetector';
 import { CommentScanner } from '../comment/commentScanner';
 import { HistoryManager } from '../manager/historyManager';
 import { ToggleManager } from '../manager/toggleManager';
+import { CommentFormatter } from '../utils/commentFormatter';
 
 /**
  * 注释替换器
@@ -16,9 +17,14 @@ export class CommentReplacer {
     private historyManager: HistoryManager;
     private toggleManager?: ToggleManager;
 
-    constructor(commentDetector: CommentDetector, historyManager: HistoryManager, toggleManager?: ToggleManager) {
+    constructor(
+        commentDetector: CommentDetector,
+        historyManager: HistoryManager,
+        toggleManager: ToggleManager | undefined,
+        commentScanner: CommentScanner
+    ) {
         this.commentDetector = commentDetector;
-        this.commentScanner = new CommentScanner();
+        this.commentScanner = commentScanner;
         this.historyManager = historyManager;
         this.toggleManager = toggleManager;
     }
@@ -110,11 +116,13 @@ export class CommentReplacer {
             const scanResult = await this.commentScanner.scanDocument(editor.document);
 
             if (!scanResult.success) {
+                await this.historyManager.endLieSession(filePath);
                 vscode.window.showErrorMessage(`扫描注释失败: ${scanResult.errorMessage}`);
                 return;
             }
 
             if (scanResult.totalComments === 0) {
+                await this.historyManager.endLieSession(filePath);
                 vscode.window.showInformationMessage('当前文档中没有找到注释！');
                 return;
             }
@@ -134,40 +142,20 @@ export class CommentReplacer {
             });
 
             if (!selectedItem) {
+                await this.historyManager.endLieSession(filePath);
                 return;
             }
 
             const newComment = await this.showReplacementInput(selectedItem.comment.cleanText);
 
             if (!newComment) {
+                await this.historyManager.endLieSession(filePath);
                 return;
             }
 
-            // 构建新的注释文本，保持原有格式
-            let newCommentText = '';
+            // 使用 CommentFormatter 构建新的注释文本
             const originalComment = selectedItem.comment;
-
-            switch (originalComment.format) {
-                case 'single-line-slash':
-                    newCommentText = `${originalComment.indentation}// ${newComment}`;
-                    break;
-                case 'single-line-hash':
-                    newCommentText = `${originalComment.indentation}# ${newComment}`;
-                    break;
-                case 'multi-line-star':
-                    if (originalComment.multiLinePosition === 'single') {
-                        newCommentText = `${originalComment.indentation}/* ${newComment} */`;
-                    } else {
-                        // 对于多行注释的各个部分，保持原有结构
-                        newCommentText = originalComment.content.replace(originalComment.cleanText, newComment);
-                    }
-                    break;
-                case 'html-comment':
-                    newCommentText = `${originalComment.indentation}<!-- ${newComment} -->`;
-                    break;
-                default:
-                    newCommentText = `${originalComment.indentation}// ${newComment}`;
-            }
+            const newCommentText = CommentFormatter.formatComment(originalComment, newComment);
 
             // 执行替换
             const success = await editor.edit(editBuilder => {
@@ -227,14 +215,27 @@ export class CommentReplacer {
             const selectedText = editor.document.getText(selection);
 
             if (!selectedText) {
+                await this.historyManager.endLieSession(filePath);
                 vscode.window.showErrorMessage('请先选中一段文本！');
                 return;
             }
 
             const languageId = editor.document.languageId;
 
+            const scanResult = await this.commentScanner.scanDocument(editor.document);
+            if (!scanResult.success) {
+                await this.historyManager.endLieSession(filePath);
+                vscode.window.showErrorMessage(scanResult.errorMessage || '扫描注释失败，请重试。');
+                return;
+            }
+
+            const selectedComment = scanResult.comments.find(comment =>
+                comment.range.contains(selection) || selection.contains(comment.range)
+            );
+
             // 检查选中的文本是否为注释
-            if (!this.commentDetector.isComment(selectedText, languageId)) {
+            if (!selectedComment) {
+                await this.historyManager.endLieSession(filePath);
                 vscode.window.showErrorMessage('选中的文本不是注释！');
                 return;
             }
@@ -242,28 +243,29 @@ export class CommentReplacer {
             const newComment = await vscode.window.showInputBox({
                 prompt: '请输入新的撒谎注释内容',
                 placeHolder: '例如：这个函数用来播放音乐',
-                value: this.commentDetector.extractCommentContent(selectedText, languageId)
+                value: this.commentDetector.extractCommentContent(selectedComment.content, languageId)
             });
 
             if (!newComment) {
+                await this.historyManager.endLieSession(filePath);
                 return;
             }
 
-            const newCommentText = this.commentDetector.replaceCommentContent(selectedText, newComment, languageId);
+            const newCommentText = this.commentDetector.replaceCommentContent(selectedComment.content, newComment, languageId);
 
             const success = await editor.edit(editBuilder => {
-                editBuilder.replace(selection, newCommentText);
+                editBuilder.replace(selectedComment.range, newCommentText);
             });
 
             if (success) {
                 // 记录历史
                 const record = this.historyManager.createHistoryRecord(
                     editor.document.uri.fsPath,
-                    selectedText,
+                    selectedComment.content,
                     newCommentText,
-                    selection
+                    selectedComment.range
                 );
-                this.historyManager.addRecord(record);
+                await this.historyManager.addRecord(record);
 
                 // 通知状态管理器有新的撒谎记录
                 if (this.toggleManager) {

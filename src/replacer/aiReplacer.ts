@@ -7,8 +7,9 @@ import OpenAI from 'openai';
 import { CommentDetector } from '../comment/commentDetector';
 import { CommentScanner, ScannedComment, ScanResult } from '../comment/commentScanner';
 import { HistoryManager } from '../manager/historyManager';
-import { HistoryRecord } from '../types';
 import { ToggleManager } from '../manager/toggleManager';
+import { ConcurrencyLimiter } from '../utils/concurrencyLimiter';
+import { applyCommentReplacements, CommentReplacement } from '../utils/commentReplacementExecutor';
 
 export interface AIReplaceResult {
     success: boolean;
@@ -26,9 +27,14 @@ export class AIReplacer {
     private openai: OpenAI | null = null;
     private isConfigured = false;
 
-    constructor(commentDetector: CommentDetector, historyManager: HistoryManager, toggleManager?: ToggleManager) {
+    constructor(
+        commentDetector: CommentDetector,
+        historyManager: HistoryManager,
+        toggleManager: ToggleManager | undefined,
+        commentScanner: CommentScanner
+    ) {
         this.commentDetector = commentDetector;
-        this.commentScanner = new CommentScanner();
+        this.commentScanner = commentScanner;
         this.historyManager = historyManager;
         this.toggleManager = toggleManager;
         this.initializeOpenAI();
@@ -577,12 +583,25 @@ ${numberedComments}
         try {
             const selection = editor.selection;
             if (selection.isEmpty) {
+                this.historyManager.endLieSession(filePath);
                 vscode.window.showErrorMessage('请先选中要替换的注释！');
                 return;
             }
 
             const selectedText = editor.document.getText(selection);
-            if (!this.commentDetector.isComment(selectedText, editor.document.languageId)) {
+            const scanResult = await this.commentScanner.scanDocument(editor.document);
+            if (!scanResult.success) {
+                this.historyManager.endLieSession(filePath);
+                vscode.window.showErrorMessage(scanResult.errorMessage || '扫描注释失败，请重试。');
+                return;
+            }
+
+            const selectedComment = scanResult.comments.find(comment =>
+                comment.range.contains(selection) || selection.contains(comment.range)
+            );
+
+            if (!selectedComment) {
+                this.historyManager.endLieSession(filePath);
                 vscode.window.showErrorMessage('选中的内容不是注释！');
                 return;
             }
@@ -596,12 +615,12 @@ ${numberedComments}
                 progress.report({ increment: 30, message: "分析注释内容..." });
 
                 // 生成AI撒谎内容
-                const lieContent = await this.generateLieContent(selectedText);
+                const lieContent = await this.generateLieContent(selectedComment.content);
                 progress.report({ increment: 50, message: "生成撒谎内容..." });
 
                 // 格式化注释
                 const formattedLie = this.commentDetector.replaceCommentContent(
-                    selectedText,
+                    selectedComment.content,
                     lieContent,
                     editor.document.languageId
                 );
@@ -609,29 +628,20 @@ ${numberedComments}
 
                 // 应用替换
                 const success = await editor.edit(editBuilder => {
-                    editBuilder.replace(selection, formattedLie);
+                    editBuilder.replace(selectedComment.range, formattedLie);
                 });
 
                 if (success) {
                     // 保存到历史记录
-                    const historyRecord: HistoryRecord = {
-                        id: this.generateId(),
-                        filePath: editor.document.uri.fsPath,
-                        originalText: selectedText,
-                        newText: formattedLie,
-                        timestamp: Date.now(),
-                        type: 'ai-replace',
-                        startPosition: {
-                            line: selection.start.line,
-                            character: selection.start.character
-                        },
-                        endPosition: {
-                            line: selection.end.line,
-                            character: selection.end.character
-                        }
-                    };
+                    const historyRecord = this.historyManager.createHistoryRecord(
+                        editor.document.uri.fsPath,
+                        selectedComment.content,
+                        formattedLie,
+                        selectedComment.range,
+                        'ai-replace'
+                    );
 
-                    this.historyManager.addRecord(historyRecord);
+                    await this.historyManager.addRecord(historyRecord);
                 } else {
                     // 替换失败，结束会话
                     this.historyManager.endLieSession(filePath);
@@ -676,9 +686,14 @@ ${numberedComments}
         const scanResult = await this.scanCommentsWithScanner();
         if (!scanResult.success || scanResult.comments.length === 0) {
             // 结束会话，因为没有注释可以处理
-            this.historyManager.endLieSession(filePath);
+            await this.historyManager.endLieSession(filePath);
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
+        }
+
+        const commentFormats = new Set(scanResult.comments.map(comment => comment.format));
+        if (commentFormats.size > 1) {
+            console.log(`[AIReplacer] 检测到混合注释类型: ${Array.from(commentFormats).join(', ')}`);
         }
 
         const choice = await vscode.window.showWarningMessage(
@@ -688,6 +703,7 @@ ${numberedComments}
         );
 
         if (choice !== '继续替换') {
+            await this.historyManager.endLieSession(filePath);
             return;
         }
 
@@ -719,17 +735,10 @@ ${numberedComments}
                         const lieContent = lieContents[i];
 
                         if (lieContent) {
-                            // 格式化注释
-                            const formattedLie = this.commentDetector.replaceCommentContent(
-                                comment.content,
-                                lieContent,
-                                editor.document.languageId
-                            );
-
                             results.push({
                                 success: true,
                                 originalText: comment.content,
-                                newText: formattedLie,
+                                newText: lieContent,
                                 lineNumber: comment.range.start.line + 1
                             });
                         } else {
@@ -744,93 +753,82 @@ ${numberedComments}
                     }
 
                 } catch (batchError: any) {
-                    // 批量处理失败，回退到单个处理模式
-                    console.warn('批量AI处理失败，回退到单个处理模式:', batchError.message); progress.report({ increment: 0, message: "批量处理失败，使用单个处理模式..." });
+                    // 批量处理失败，使用并发控制的单个处理模式
+                    console.warn('批量AI处理失败，使用并发单个处理模式:', batchError.message);
 
-                    for (let i = 0; i < scanResult.comments.length; i++) {
-                        const comment = scanResult.comments[i];
-                        const progressPercent = Math.round((i / scanResult.comments.length) * 60); // 剩余60%进度
+                    progress.report({ increment: 0, message: "使用并发处理模式..." });
 
-                        progress.report({
-                            increment: i === 0 ? 0 : 60 / scanResult.comments.length,
-                            message: `单个处理 ${i + 1}/${scanResult.comments.length} (${progressPercent}%)`
-                        });
+                    // 创建并发限制器，最多同时3个请求
+                    const limiter = new ConcurrencyLimiter(3);
+                    let processedCount = 0;
 
+                    // 创建所有任务
+                    const tasks = scanResult.comments.map((comment, i) => async () => {
                         try {
+                            // 智能延迟策略
+                            const delay = ConcurrencyLimiter.calculateDelay(processedCount, scanResult.comments.length);
+                            if (delay > 0) {
+                                await new Promise(resolve => setTimeout(resolve, delay));
+                            }
+
                             // 生成AI撒谎内容
                             const lieContent = await this.generateLieContent(comment.cleanText);
 
-                            // 格式化注释
-                            const formattedLie = this.commentDetector.replaceCommentContent(
-                                comment.content,
-                                lieContent,
-                                editor.document.languageId
-                            );
-
-                            results.push({
-                                success: true,
-                                originalText: comment.content,
-                                newText: formattedLie,
-                                lineNumber: comment.range.start.line + 1
+                            processedCount++;
+                            const progressPercent = Math.round((processedCount / scanResult.comments.length) * 60);
+                            progress.report({
+                                increment: 60 / scanResult.comments.length,
+                                message: `并发处理 ${processedCount}/${scanResult.comments.length} (${progressPercent}%)`
                             });
 
+                            return {
+                                success: true,
+                                originalText: comment.content,
+                                newText: lieContent,
+                                lineNumber: comment.range.start.line + 1
+                            };
+
                         } catch (error: any) {
-                            results.push({
+                            processedCount++;
+                            return {
                                 success: false,
                                 originalText: comment.content,
                                 newText: '',
                                 lineNumber: comment.range.start.line + 1,
                                 error: error.message
-                            });
+                            };
                         }
+                    });
 
-                        // 小延迟避免API限制
-                        if (i < scanResult.comments.length - 1) {
-                            await new Promise(resolve => setTimeout(resolve, 100));
-                        }
-                    }
+                    // 并发执行所有任务
+                    const taskResults = await limiter.runAll(tasks);
+                    results.push(...taskResults);
                 }
 
                 progress.report({ increment: 20, message: "应用替换..." });
-            });            // 应用所有替换
-            const success = await editor.edit(editBuilder => {
-                for (let i = 0; i < scanResult.comments.length; i++) {
-                    const comment = scanResult.comments[i];
-                    const result = results[i];
+            });
 
-                    if (result.success) {
-                        const range = new vscode.Range(
-                            new vscode.Position(comment.range.start.line, comment.range.start.character),
-                            new vscode.Position(comment.range.end.line, comment.range.end.character)
-                        );
-
-                        editBuilder.replace(range, result.newText);
-
-                        // 保存到历史记录
-                        const historyRecord: HistoryRecord = {
-                            id: this.generateId(),
-                            filePath: editor.document.uri.fsPath,
-                            originalText: result.originalText,
-                            newText: result.newText,
-                            timestamp: Date.now(),
-                            type: 'ai-batch-replace',
-                            startPosition: {
-                                line: comment.range.start.line,
-                                character: comment.range.start.character
-                            },
-                            endPosition: {
-                                line: comment.range.end.line,
-                                character: comment.range.end.character
-                            }
-                        };
-
-                        this.historyManager.addRecord(historyRecord);
-                        replacedCount++;
-                    }
+            const replacements: CommentReplacement[] = [];
+            for (let i = 0; i < scanResult.comments.length; i++) {
+                const comment = scanResult.comments[i];
+                const result = results[i];
+                if (result && result.success) {
+                    replacements.push({ comment, newContent: result.newText });
                 }
-            }); const failedCount = results.filter(r => !r.success).length; if (success && replacedCount > 0) {
-                // 通知toggle manager状态已更新
-                this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
+            }
+
+            const applyResult = await applyCommentReplacements({
+                editor,
+                replacements,
+                historyManager: this.historyManager,
+                recordType: 'ai-batch-replace',
+                toggleManager: this.toggleManager
+            });
+
+            replacedCount = applyResult.replacedCount;
+            const failedCount = results.filter(r => !r.success).length;
+
+            if (applyResult.success && replacedCount > 0) {
                 let message = `🎉 AI批量撒谎完成！成功替换了 ${replacedCount} 个注释`;
                 if (failedCount > 0) {
                     message += `，${failedCount} 个失败`;
@@ -840,7 +838,7 @@ ${numberedComments}
                 console.log(`[AIReplacer] 撒谎会话保持活跃，共处理 ${replacedCount} 个注释`);
             } else {
                 // 如果替换失败或没有替换任何注释，结束会话
-                this.historyManager.endLieSession(filePath);
+                await this.historyManager.endLieSession(filePath);
                 console.log(`[AIReplacer] 撒谎会话已结束，因为没有成功替换注释`);
 
                 if (failedCount === results.length) {
@@ -881,6 +879,11 @@ ${numberedComments}
             return;
         }
 
+        const commentFormats = new Set(scanResult.comments.map(comment => comment.format));
+        if (commentFormats.size > 1) {
+            console.log(`[AIReplacer] 检测到混合注释类型: ${Array.from(commentFormats).join(', ')}`);
+        }
+
         // 为每个注释生成预览信息
         const commentItems: vscode.QuickPickItem[] = scanResult.comments.map((comment, index) => {
             const preview = comment.cleanText.replace(/\s+/g, ' ').trim();
@@ -903,6 +906,7 @@ ${numberedComments}
         });
 
         if (!selectedItems || selectedItems.length === 0) {
+            await this.historyManager.endLieSession(filePath);
             return;
         }
 
@@ -913,6 +917,7 @@ ${numberedComments}
         );
 
         if (choice !== '继续替换') {
+            await this.historyManager.endLieSession(filePath);
             return;
         }        // 获取选中的注释索引
         const selectedIndices = selectedItems.map(item => {
@@ -945,17 +950,10 @@ ${numberedComments}
                     for (let i = 0; i < selectedComments.length; i++) {
                         const comment = selectedComments[i];
                         const lieContent = lieContents[i]; if (lieContent) {
-                            // 格式化注释
-                            const formattedLie = this.commentDetector.replaceCommentContent(
-                                comment.content,
-                                lieContent,
-                                editor.document.languageId
-                            );
-
                             results.push({
                                 success: true,
                                 originalText: comment.content,
-                                newText: formattedLie,
+                                newText: lieContent,
                                 lineNumber: comment.range.start.line + 1
                             });
                         } else {
@@ -985,17 +983,11 @@ ${numberedComments}
 
                         try {
                             // 生成AI撒谎内容
-                            const lieContent = await this.generateLieContent(comment.cleanText);                            // 格式化注释
-                            const formattedLie = this.commentDetector.replaceCommentContent(
-                                comment.content,
-                                lieContent,
-                                editor.document.languageId
-                            );
-
+                            const lieContent = await this.generateLieContent(comment.cleanText);
                             results.push({
                                 success: true,
                                 originalText: comment.content,
-                                newText: formattedLie,
+                                newText: lieContent,
                                 lineNumber: comment.range.start.line + 1
                             });
 
@@ -1017,46 +1009,29 @@ ${numberedComments}
                 }
 
                 progress.report({ increment: 20, message: "应用替换..." });
-            });            // 应用替换
-            const success = await editor.edit(editBuilder => {
-                for (let i = 0; i < selectedIndices.length; i++) {
-                    const commentIndex = selectedIndices[i];
-                    const comment = scanResult.comments[commentIndex];
-                    const result = results[i];
+            });
 
-                    if (result.success) {
-                        const range = new vscode.Range(
-                            new vscode.Position(comment.range.start.line, comment.range.start.character),
-                            new vscode.Position(comment.range.end.line, comment.range.end.character)
-                        );
-
-                        editBuilder.replace(range, result.newText);
-
-                        // 保存到历史记录
-                        const historyRecord: HistoryRecord = {
-                            id: this.generateId(),
-                            filePath: editor.document.uri.fsPath,
-                            originalText: result.originalText,
-                            newText: result.newText,
-                            timestamp: Date.now(),
-                            type: 'ai-selective-replace',
-                            startPosition: {
-                                line: comment.range.start.line,
-                                character: comment.range.start.character
-                            },
-                            endPosition: {
-                                line: comment.range.end.line,
-                                character: comment.range.end.character
-                            }
-                        };
-
-                        this.historyManager.addRecord(historyRecord);
-                        replacedCount++;
-                    }
+            const replacements: CommentReplacement[] = [];
+            for (let i = 0; i < selectedIndices.length; i++) {
+                const commentIndex = selectedIndices[i];
+                const comment = scanResult.comments[commentIndex];
+                const result = results[i];
+                if (result.success) {
+                    replacements.push({ comment, newContent: result.newText });
                 }
-            }); const failedCount = results.filter(r => !r.success).length; if (success && replacedCount > 0) {
-                // 通知toggle manager状态已更新
-                this.toggleManager?.notifyLiesAdded(editor.document.uri.fsPath);
+            }
+
+            const applyResult = await applyCommentReplacements({
+                editor,
+                replacements,
+                historyManager: this.historyManager,
+                recordType: 'ai-selective-replace',
+                toggleManager: this.toggleManager
+            });
+
+            replacedCount = applyResult.replacedCount;
+            const failedCount = results.filter(r => !r.success).length;
+            if (applyResult.success && replacedCount > 0) {
                 let message = `🎉 AI选择性撒谎完成！成功替换了 ${replacedCount} 个注释`;
                 if (failedCount > 0) {
                     message += `，${failedCount} 个失败`;
@@ -1066,7 +1041,7 @@ ${numberedComments}
                 console.log(`[AIReplacer] 撒谎会话保持活跃，共处理 ${replacedCount} 个注释`);
             } else {
                 // 如果替换失败或没有替换任何注释，结束会话
-                this.historyManager.endLieSession(filePath);
+                await this.historyManager.endLieSession(filePath);
                 console.log(`[AIReplacer] 撒谎会话已结束，因为没有成功替换注释`);
 
                 if (failedCount === results.length) {

@@ -52,6 +52,7 @@ export class CommentHider {
         const scanResult = await this.commentScanner.scanDocument(editor.document);
 
         if (!scanResult.success || scanResult.comments.length === 0) {
+            await this.historyManager.endLieSession(filePath);
             vscode.window.showInformationMessage('当前文件中没有找到注释！');
             return;
         }
@@ -95,6 +96,7 @@ export class CommentHider {
             this.hiddenCommentsMap.set(filePath, hiddenComments);
             vscode.window.showInformationMessage(`已隐藏 ${hiddenCount} 个注释！现在代码看起来更"干净"了 😈`);
         } else {
+            await this.historyManager.endLieSession(filePath);
             vscode.window.showErrorMessage('隐藏注释操作失败！');
         }
     }
